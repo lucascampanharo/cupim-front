@@ -1,4 +1,4 @@
-import "./header.css";
+import "./Header.css";
 
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useContext } from "react";
