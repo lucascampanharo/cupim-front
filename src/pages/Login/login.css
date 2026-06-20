@@ -1,0 +1,120 @@
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1.08fr;
+  background: #ffffff;
+  color: #082b5f;
+}
+
+.login-image-area {
+  background:
+    linear-gradient(
+      rgba(216, 194, 165, 0.38),
+      rgba(216, 194, 165, 0.38)
+    ),
+    url("https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=1200");
+  background-size: cover;
+  background-position: center;
+}
+
+.login-form-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding-bottom: 35px;
+}
+
+.login-form-area h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 66px;
+  font-weight: 400;
+  color: #082b5f;
+  margin-bottom: 45px;
+}
+
+.login-form {
+  width: 265px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-form input[type="email"],
+.login-form input[type="password"],
+.login-form input[type="text"] {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #082b5f;
+  border-radius: 6px;
+  padding: 0 14px;
+  margin-bottom: 22px;
+  color: #082b5f;
+  outline: none;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.18);
+}
+
+.login-form input::placeholder {
+  color: #7a7a7a;
+}
+
+.show-password {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+
+  font-size: 11px;
+  color: #082b5f;
+  margin-top: -12px;
+  margin-bottom: 38px;
+}
+
+.show-password input {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.login-form button {
+  width: 108px;
+  height: 36px;
+  background: #082b5f;
+  color: white;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 12px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.22);
+  transition: 0.2s;
+}
+
+.login-form button:hover {
+  background: #0d376f;
+  transform: translateY(-1px);
+}
+
+.login-register-link {
+  margin-top: 25px;
+  font-size: 12px;
+  color: #082b5f;
+}
+
+.login-register-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 800px) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .login-image-area {
+    display: none;
+  }
+
+  .login-form-area {
+    min-height: 100vh;
+  }
+}

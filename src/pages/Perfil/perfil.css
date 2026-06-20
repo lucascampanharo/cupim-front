@@ -1,0 +1,148 @@
+.perfil-container {
+  background: #ffffff;
+  min-height: calc(100vh - 150px);
+  color: #082b5f;
+  padding: 38px 0 55px;
+}
+
+.perfil-content {
+  width: 86%;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.perfil-content h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 36px;
+  font-weight: bold;
+  color: #082b5f;
+  margin-bottom: 25px;
+}
+
+.perfil-dados {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 42px;
+  margin-bottom: 40px;
+}
+
+.perfil-campo {
+  display: flex;
+  flex-direction: column;
+}
+
+.perfil-campo label {
+  font-size: 13px;
+  font-weight: bold;
+  color: #082b5f;
+  margin-bottom: 8px;
+}
+
+.perfil-campo input {
+  height: 48px;
+  border: none;
+  border-radius: 7px;
+  background: #f3eadc;
+  color: #8d8277;
+  padding: 0 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 21px;
+  outline: none;
+}
+
+.perfil-botoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 42px;
+  margin-bottom: 42px;
+}
+
+.perfil-botoes button {
+  height: 55px;
+  background: #e8bfc0;
+  color: #082b5f;
+  border: none;
+  border-radius: 6px;
+  font-size: 25px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.perfil-botoes button:hover {
+  background: #dfb2b3;
+  transform: translateY(-1px);
+}
+
+.perfil-content h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 34px;
+  color: #082b5f;
+  margin-bottom: 30px;
+}
+
+.historico-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pedido-card {
+  background: #f3eadc;
+  border-radius: 4px;
+  padding: 24px 28px 25px;
+  min-height: 150px;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.22);
+
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.pedido-produtos h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 27px;
+  color: #082b5f;
+  margin-bottom: 16px;
+}
+
+.pedido-produtos p {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 25px;
+  color: #082b5f;
+  line-height: 1.25;
+}
+
+.pedido-resumo {
+  align-self: flex-end;
+  text-align: right;
+  font-family: Georgia, "Times New Roman", serif;
+  color: #082b5f;
+  font-size: 23px;
+  line-height: 1.7;
+}
+
+.pedido-resumo strong {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bold;
+  color: #082b5f;
+}
+
+.perfil-footer {
+  background: #d8c2a5;
+  color: white;
+  padding: 22px 45px;
+  font-size: 12px;
+}
+.pedido-vazio {
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pedido-vazio p {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  color: #082b5f;
+}

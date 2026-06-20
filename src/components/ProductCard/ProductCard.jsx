@@ -1,0 +1,35 @@
+import "./productCard.css";
+
+import { Link } from "react-router-dom";
+
+function ProductCard({ product }) {
+  return (
+    <div className="product-card">
+      <img
+        src={product.imagem}
+        alt={product.nomeCompleto || product.nome}
+      />
+
+      <div className="product-info">
+        <h3>{product.nomeCompleto || product.nome}</h3>
+
+        <span>
+          R${" "}
+          {Number(product.preco).toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+          })}
+        </span>
+
+        <p>{product.descricao}</p>
+
+        <Link to={`/detalhes/${product.id}`}>
+          <button>
+            Ver mais →
+          </button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default ProductCard;

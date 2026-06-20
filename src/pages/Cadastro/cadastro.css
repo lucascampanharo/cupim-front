@@ -1,0 +1,144 @@
+.cadastro-page {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #082b5f;
+}
+
+.cadastro-hero {
+  height: 135px;
+  background:
+    linear-gradient(
+      rgba(216, 194, 165, 0.25),
+      rgba(216, 194, 165, 0.25)
+    ),
+    url("https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=1600");
+  background-size: cover;
+  background-position: center 52%;
+
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  padding-right: 72px;
+}
+
+.cadastro-hero h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 62px;
+  font-weight: 400;
+  color: #082b5f;
+}
+
+.cadastro-content {
+  padding: 45px 120px 60px;
+}
+
+.cadastro-content h2 {
+  text-align: center;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  font-weight: 400;
+  margin-bottom: 45px;
+  color: #082b5f;
+}
+
+.cadastro-form {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 62px;
+  row-gap: 24px;
+  align-items: end;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #082b5f;
+}
+
+.form-group label span {
+  color: red;
+}
+
+.form-group input {
+  height: 43px;
+  border: 1px solid #082b5f;
+  border-radius: 6px;
+  padding: 0 12px;
+  outline: none;
+  color: #082b5f;
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.2);
+}
+
+.form-group input::placeholder {
+  color: #888;
+}
+
+.form-row-double {
+  display: grid;
+  grid-template-columns: 95px 1fr;
+  gap: 22px;
+}
+
+.password-rules {
+  color: red;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  line-height: 1.45;
+  align-self: center;
+}
+
+.cadastro-btn {
+  grid-column: 1 / 3;
+  justify-self: center;
+
+  margin-top: 36px;
+
+  width: 170px;
+  height: 48px;
+  background: #082b5f;
+  color: white;
+  border-radius: 7px;
+  font-weight: bold;
+  font-size: 14px;
+
+  box-shadow: 0 4px 7px rgba(0, 0, 0, 0.25);
+  transition: 0.2s;
+}
+
+.cadastro-btn:hover {
+  background: #0d376f;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 900px) {
+  .cadastro-content {
+    padding: 35px 30px 50px;
+  }
+
+  .cadastro-form {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row-double {
+    grid-template-columns: 1fr;
+  }
+
+  .cadastro-btn {
+    grid-column: 1;
+  }
+
+  .cadastro-hero {
+    padding-right: 30px;
+  }
+}
