@@ -8,7 +8,7 @@
 }
 
 .compra-left {
-  padding: 42px 88px;
+  padding: 42px clamp(32px, 6vw, 88px);
   border-right: 2px solid #082b5f;
   position: relative;
 }
@@ -80,6 +80,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 24px;
 }
 
 .pagamento-opcoes {
@@ -120,7 +121,7 @@
 
 .compra-right {
   background: #f7efe4;
-  padding: 75px 78px;
+  padding: 75px clamp(32px, 6vw, 78px);
 
   display: flex;
   flex-direction: column;
@@ -144,6 +145,7 @@
 .resumo-valores p {
   display: flex;
   justify-content: space-between;
+  gap: 20px;
   margin-bottom: 22px;
 }
 
@@ -166,6 +168,7 @@
 .entrega-box p {
   display: flex;
   justify-content: space-between;
+  gap: 20px;
   margin-bottom: 15px;
 }
 
@@ -178,7 +181,7 @@
 }
 
 .finalizar-btn {
-  width: 390px;
+  width: min(390px, 100%);
   height: 58px;
   background: #082b5f;
   color: white;
@@ -197,6 +200,12 @@
   transform: translateY(-1px);
 }
 
+.finalizar-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+}
+
 @media (max-width: 900px) {
   .compra-page {
     grid-template-columns: 1fr;
@@ -213,6 +222,36 @@
   }
 
   .finalizar-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .compra-left,
+  .compra-right {
+    padding: 32px 18px;
+  }
+
+  .voltar-compra {
+    top: 24px;
+    left: 16px;
+  }
+
+  .endereco-form {
+    grid-template-columns: 1fr;
+  }
+
+  .form-group.full {
+    grid-column: auto;
+  }
+
+  .pagamento-area,
+  .resumo-valores p,
+  .entrega-box p {
+    flex-direction: column;
+  }
+
+  .parcelas-box input {
     width: 100%;
   }
 }

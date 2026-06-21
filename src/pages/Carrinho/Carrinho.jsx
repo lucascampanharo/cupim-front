@@ -4,7 +4,7 @@ import "./carrinho.css";
 import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { CartContext } from "../../context/CartContext";
+import { CartContext } from "../../context/cart-context";
 
 function Carrinho() {
   const navigate = useNavigate();

@@ -1,3 +1,5 @@
+import { criarPedidoNaApi } from "../services/orderService";
+
 function getUserOrderKey(user) {
   if (user?.id) {
     return `pedidos_user_${user.id}`;
@@ -16,16 +18,43 @@ export function getPedidosDoUsuario(user) {
   return JSON.parse(localStorage.getItem(key)) || [];
 }
 
-export function salvarPedidoDoUsuario(user, pedido) {
+export async function salvarPedidoDoUsuario(user, pedido, cart = []) {
+  let apiSync = false;
+  let apiError = "";
+  let idPedidoApi = null;
+
+  try {
+    const apiPedido = await criarPedidoNaApi({
+      user,
+      cart,
+      valorTotal: pedido.valorTotal,
+    });
+
+    apiSync = true;
+    idPedidoApi = apiPedido.idPedido;
+  } catch (error) {
+    apiError = error.message || "Nao foi possivel sincronizar o pedido.";
+    console.warn("Pedido salvo localmente. API indisponivel:", apiError);
+  }
+
   const key = getUserOrderKey(user);
 
   const pedidosAtuais = JSON.parse(localStorage.getItem(key)) || [];
 
-  const novosPedidos = [...pedidosAtuais, pedido];
+  const pedidoFinal = {
+    ...pedido,
+    idPedidoApi,
+    apiSync,
+    apiError,
+  };
+
+  const novosPedidos = [...pedidosAtuais, pedidoFinal];
 
   localStorage.setItem(key, JSON.stringify(novosPedidos));
 
-  salvarPedidoParaAdmin(user, pedido);
+  salvarPedidoParaAdmin(user, pedidoFinal);
+
+  return pedidoFinal;
 }
 
 function salvarPedidoParaAdmin(user, pedido) {

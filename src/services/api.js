@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000")
+  .replace(/\/$/, "");
 
 export function getToken() {
   return localStorage.getItem("token");
@@ -51,7 +52,9 @@ export async function apiFetch(endpoint, options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const url = endpoint.startsWith("http") ? endpoint : `${API_URL}${endpoint}`;
+
+  const response = await fetch(url, {
     ...options,
     headers,
   });
@@ -59,9 +62,16 @@ export async function apiFetch(endpoint, options = {}) {
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
+    const validationDetails = Array.isArray(data?.details)
+      ? data.details
+          .map((detail) => `${detail.field}: ${detail.message}`)
+          .join("; ")
+      : "";
+
     throw new Error(
       data?.error ||
         data?.message ||
+        validationDetails ||
         "Erro ao comunicar com a API."
     );
   }

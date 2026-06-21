@@ -45,6 +45,21 @@ function saveHiddenProducts(products) {
   localStorage.setItem("adminHiddenProducts", JSON.stringify(products));
 }
 
+async function encontrarProdutoCriado(productData) {
+  const produtos = await listarProdutos();
+  const nomeProduto = String(productData.nome || "").trim().toLowerCase();
+  const precoProduto = Number(productData.preco);
+
+  return produtos.find((produto) => {
+    const mesmoNome = String(produto.nome || produto.nomeCompleto || "")
+      .trim()
+      .toLowerCase() === nomeProduto;
+    const mesmoPreco = Number(produto.preco) === precoProduto;
+
+    return mesmoNome && mesmoPreco;
+  });
+}
+
 export async function listarProdutosAdmin() {
   const produtosOcultos = getHiddenProducts();
 
@@ -77,13 +92,19 @@ export async function cadastrarProdutoAdmin(productData) {
       body: JSON.stringify(body),
     });
 
-    const idProduto =
+    let idProduto =
       data?.produto?.id ||
       data?.produto?.id_produto ||
       data?.produtoId ||
       data?.idProduto ||
       data?.id_produto ||
       data?.id;
+
+    if (!idProduto && productData.imagemArquivo) {
+      const produtoCriado = await encontrarProdutoCriado(productData);
+
+      idProduto = produtoCriado?.id;
+    }
 
     if (idProduto && productData.imagemArquivo) {
       const formData = new FormData();

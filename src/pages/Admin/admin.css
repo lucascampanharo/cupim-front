@@ -33,6 +33,7 @@
 .admin-tabs {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   margin: 22px 0;
 }
 
@@ -96,8 +97,8 @@
 .admin-products-grid,
 .admin-stock-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 48px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 28px;
 }
 
 .admin-card {
@@ -367,7 +368,7 @@
 
 .admin-orders-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 32px;
   margin-top: 40px;
 }
@@ -428,10 +429,16 @@
 }
 
 @media (max-width: 900px) {
-  .admin-products-grid,
-  .admin-stock-grid,
-  .admin-orders-grid {
-    grid-template-columns: 1fr 1fr;
+  .admin-header {
+    height: auto;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 22px;
+    flex-direction: column;
+  }
+
+  .admin-content {
+    padding: 0 22px 34px;
   }
 
   .admin-product-form {
@@ -444,5 +451,21 @@
 
   .admin-users-list {
     width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-form-page {
+    width: 100%;
+  }
+
+  .admin-submit-btn {
+    width: 100%;
+  }
+
+  .admin-category-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px 16px;
   }
 }

@@ -5,7 +5,7 @@ import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { buscarProdutoPorId } from "../../services/productService";
-import { CartContext } from "../../context/CartContext";
+import { CartContext } from "../../context/cart-context";
 
 function Detalhes() {
   const { id } = useParams();

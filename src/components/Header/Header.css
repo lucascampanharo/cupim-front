@@ -3,6 +3,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 24px;
   padding: 25px 50px;
 }
 
@@ -15,6 +16,8 @@
   display: flex;
   align-items: center;
   gap: 30px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .header input{
@@ -26,6 +29,7 @@
 
 .header nav{
   display: flex;
+  flex-wrap: wrap;
   gap: 20px;
   color: #0d2c63;
   font-weight: bold;
@@ -74,4 +78,26 @@
 .header nav .logout-btn:hover {
   background: #eee4d5 !important;
   transform: translateY(-1px);
+}
+
+@media (max-width: 760px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 22px;
+  }
+
+  .header h1 {
+    font-size: 42px;
+  }
+
+  .header-right,
+  .header input,
+  .header nav {
+    width: 100%;
+  }
+
+  .header nav {
+    gap: 14px;
+  }
 }

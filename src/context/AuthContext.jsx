@@ -1,7 +1,6 @@
-import { createContext, useEffect, useState } from "react";
+import { useState } from "react";
 import { apiFetch, saveToken, removeToken, getToken } from "../services/api";
-
-export const AuthContext = createContext();
+import { AuthContext } from "./auth-context";
 
 function salvarUsuarioLocal(userData) {
   const users = JSON.parse(localStorage.getItem("registeredUsers")) || {};
@@ -90,16 +89,16 @@ function normalizeUser(user, emailFallback = "") {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
+  const [user, setUser] = useState(() => {
     const loggedUser = localStorage.getItem("userLogged");
     const token = getToken();
 
     if (loggedUser && token) {
-      setUser(JSON.parse(loggedUser));
+      return JSON.parse(loggedUser);
     }
-  }, []);
+
+    return null;
+  });
 
   async function register(userData) {
     const enderecoCompleto = `${userData.endereco}, ${userData.numero} - ${userData.bairro}, ${userData.cidade}, CEP: ${userData.cep}. Complemento: ${

@@ -3,7 +3,7 @@ import "./admin.css";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useContext } from "react";
 
-import { AuthContext } from "../../context/AuthContext";
+import { AuthContext } from "../../context/auth-context";
 
 function AdminLayout({ children }) {
   const navigate = useNavigate();

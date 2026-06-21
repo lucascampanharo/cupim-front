@@ -4,8 +4,8 @@ import { salvarPedidoDoUsuario } from "../../utils/orderStorage";
 import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { AuthContext } from "../../context/AuthContext";
-import { CartContext } from "../../context/CartContext";
+import { AuthContext } from "../../context/auth-context";
+import { CartContext } from "../../context/cart-context";
 
 function Compra() {
   const navigate = useNavigate();
@@ -14,6 +14,7 @@ function Compra() {
   const { cart, clearCart } = useContext(CartContext);
 
   const [formaPagamento, setFormaPagamento] = useState("Cartão de Crédito");
+  const [loading, setLoading] = useState(false);
 
   const valorPedido = cart.reduce((acc, item) => {
     return acc + item.preco * item.quantidade;
@@ -23,31 +24,42 @@ function Compra() {
   const valorTotal = valorPedido + frete;
   const parcela = valorTotal / 12;
 
-  function finalizarCompra() {
+  async function finalizarCompra() {
     if (cart.length === 0) {
       alert("Seu carrinho está vazio!");
       navigate("/");
       return;
     }
 
-    const novoPedido = {
-      id: Date.now(),
-      produtos: cart.map((item) => ({
-        nome: item.nomeCompleto || item.nome,
-        quantidade: item.quantidade,
-      })),
-      formaPagamento,
-      valorTotal,
-      data: new Date().toLocaleDateString("pt-BR"),
-    };
+    try {
+      setLoading(true);
 
-    salvarPedidoDoUsuario(user, novoPedido);
+      const novoPedido = {
+        id: Date.now(),
+        produtos: cart.map((item) => ({
+          idProduto: item.idProduto || item.id_produto || item.id,
+          nome: item.nomeCompleto || item.nome,
+          quantidade: item.quantidade,
+        })),
+        formaPagamento,
+        valorTotal,
+        data: new Date().toLocaleDateString("pt-BR"),
+      };
 
-    clearCart();
+      const pedidoSalvo = await salvarPedidoDoUsuario(user, novoPedido, cart);
 
-    alert("Compra finalizada com sucesso!");
+      clearCart();
 
-    navigate("/perfil");
+      alert(
+        pedidoSalvo.apiSync
+          ? "Compra finalizada com sucesso!"
+          : "Compra finalizada localmente. A API não confirmou o pedido agora."
+      );
+
+      navigate("/perfil");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -76,10 +88,7 @@ function Compra() {
               <span>*</span>Número:
             </label>
 
-            <input
-              defaultValue={user?.numero || "1695"}
-              placeholder="Número"
-            />
+            <input defaultValue={user?.numero || "1695"} placeholder="Número" />
           </div>
 
           <div className="form-group">
@@ -87,10 +96,7 @@ function Compra() {
               <span>*</span>CEP:
             </label>
 
-            <input
-              defaultValue={user?.cep || "98695-788"}
-              placeholder="CEP"
-            />
+            <input defaultValue={user?.cep || "98695-788"} placeholder="CEP" />
           </div>
 
           <div className="form-group">
@@ -99,7 +105,7 @@ function Compra() {
             </label>
 
             <input
-              defaultValue={user?.bairro || "Júlio césar"}
+              defaultValue={user?.bairro || "Júlio César"}
               placeholder="Bairro"
             />
           </div>
@@ -120,56 +126,33 @@ function Compra() {
 
         <div className="pagamento-area">
           <div className="pagamento-opcoes">
-            <label>
-              <input
-                type="radio"
-                checked={formaPagamento === "Cartão de Crédito"}
-                onChange={() => setFormaPagamento("Cartão de Crédito")}
-              />
-              Cartão de Crédito
-            </label>
-
-            <label>
-              <input
-                type="radio"
-                checked={formaPagamento === "Depósito"}
-                onChange={() => setFormaPagamento("Depósito")}
-              />
-              Depósito
-            </label>
-
-            <label>
-              <input
-                type="radio"
-                checked={formaPagamento === "Pix"}
-                onChange={() => setFormaPagamento("Pix")}
-              />
-              Pix
-            </label>
-
-            <label>
-              <input
-                type="radio"
-                checked={formaPagamento === "Cartão de Débito"}
-                onChange={() => setFormaPagamento("Cartão de Débito")}
-              />
-              Cartão de Débito
-            </label>
-
-            <label>
-              <input
-                type="radio"
-                checked={formaPagamento === "Boleto"}
-                onChange={() => setFormaPagamento("Boleto")}
-              />
-              Boleto
-            </label>
+            {[
+              "Cartão de Crédito",
+              "Depósito",
+              "Pix",
+              "Cartão de Débito",
+              "Boleto",
+            ].map((opcao) => (
+              <label key={opcao}>
+                <input
+                  type="radio"
+                  checked={formaPagamento === opcao}
+                  onChange={() => setFormaPagamento(opcao)}
+                />
+                {opcao}
+              </label>
+            ))}
           </div>
 
           <div className="parcelas-box">
-            <label>N° Parcelas:</label>
+            <label>Nº Parcelas:</label>
 
-            <input value="12x de R$ 150,32" readOnly />
+            <input
+              value={`12x de R$ ${parcela.toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+              })}`}
+              readOnly
+            />
           </div>
         </div>
       </section>
@@ -231,8 +214,12 @@ function Compra() {
           </p>
         </div>
 
-        <button className="finalizar-btn" onClick={finalizarCompra}>
-          Finalizar compra
+        <button
+          className="finalizar-btn"
+          onClick={finalizarCompra}
+          disabled={loading}
+        >
+          {loading ? "Finalizando..." : "Finalizar compra"}
         </button>
       </section>
     </main>

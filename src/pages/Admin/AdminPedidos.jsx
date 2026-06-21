@@ -1,15 +1,11 @@
 import AdminLayout from "./AdminLayout";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { listarPedidosAdmin } from "../../services/adminService";
 
 function AdminPedidos() {
-  const [pedidos, setPedidos] = useState([]);
-
-  useEffect(() => {
-    setPedidos(listarPedidosAdmin());
-  }, []);
+  const [pedidos, setPedidos] = useState(() => listarPedidosAdmin());
 
   function finalizarPedido(id) {
     setPedidos((prev) =>

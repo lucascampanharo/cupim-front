@@ -1,22 +1,18 @@
 import Header from "../../components/Header/Header";
 import "./perfil.css";
 
-import { useContext, useEffect, useState } from "react";
-import { AuthContext } from "../../context/AuthContext";
+import { useContext, useMemo } from "react";
+import { AuthContext } from "../../context/auth-context";
 
 import { getPedidosDoUsuario } from "../../utils/orderStorage";
 
 function Perfil() {
   const { user } = useContext(AuthContext);
 
-  const [pedidos, setPedidos] = useState([]);
+  const pedidos = useMemo(() => {
+    if (!user) return [];
 
-  useEffect(() => {
-    if (user) {
-      const pedidosUsuario = getPedidosDoUsuario(user);
-
-      setPedidos(pedidosUsuario);
-    }
+    return getPedidosDoUsuario(user);
   }, [user]);
 
   return (

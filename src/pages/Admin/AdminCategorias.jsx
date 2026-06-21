@@ -1,6 +1,6 @@
 import AdminLayout from "./AdminLayout";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   atualizarCategoriaAdmin,
@@ -10,12 +10,8 @@ import {
 } from "../../services/adminService";
 
 function AdminCategorias() {
-  const [categorias, setCategorias] = useState([]);
+  const [categorias, setCategorias] = useState(() => listarCategoriasAdmin());
   const [novaCategoria, setNovaCategoria] = useState("");
-
-  useEffect(() => {
-    setCategorias(listarCategoriasAdmin());
-  }, []);
 
   async function adicionarCategoria() {
     if (!novaCategoria.trim()) return;

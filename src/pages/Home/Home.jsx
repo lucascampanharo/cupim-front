@@ -2,64 +2,68 @@ import Header from "../../components/Header/Header";
 import ProductCard from "../../components/ProductCard/ProductCard";
 import "./home.css";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { listarProdutos } from "../../services/productService";
 
 function Home() {
   const [produtos, setProdutos] = useState([]);
-  const [produtosFiltrados, setProdutosFiltrados] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
   const [ordenacao, setOrdenacao] = useState("");
 
   useEffect(() => {
+    async function carregarProdutos() {
+      setLoading(true);
+
+      try {
+        const data = await listarProdutos();
+
+        setProdutos(data);
+      } catch (error) {
+        console.error("Erro ao carregar produtos:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
     carregarProdutos();
   }, []);
 
-  useEffect(() => {
-    aplicarFiltros();
-  }, [produtos, categoriaSelecionada, ordenacao]);
-
-  async function carregarProdutos() {
+  const produtosFiltrados = useMemo(() => {
     try {
-      const data = await listarProdutos();
+      const lista = [...produtos];
 
-      setProdutos(data);
+      let listaFiltrada = lista;
+
+      if (categoriaSelecionada) {
+        listaFiltrada = listaFiltrada.filter((produto) =>
+          produto.categoria
+            ?.toLowerCase()
+            .includes(categoriaSelecionada.toLowerCase())
+        );
+      }
+
+      if (ordenacao === "menor-preco") {
+        listaFiltrada.sort((a, b) => Number(a.preco) - Number(b.preco));
+      }
+
+      if (ordenacao === "maior-preco") {
+        listaFiltrada.sort((a, b) => Number(b.preco) - Number(a.preco));
+      }
+
+      if (ordenacao === "nome") {
+        listaFiltrada.sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
+      }
+
+      return listaFiltrada;
     } catch (error) {
-      console.error("Erro ao carregar produtos:", error);
-    } finally {
-      setLoading(false);
+      console.error("Erro ao filtrar produtos:", error);
+      return [];
     }
-  }
-
-  function aplicarFiltros() {
-    let lista = [...produtos];
-
-    if (categoriaSelecionada) {
-      lista = lista.filter((produto) =>
-        produto.categoria
-          ?.toLowerCase()
-          .includes(categoriaSelecionada.toLowerCase())
-      );
-    }
-
-    if (ordenacao === "menor-preco") {
-      lista.sort((a, b) => Number(a.preco) - Number(b.preco));
-    }
-
-    if (ordenacao === "maior-preco") {
-      lista.sort((a, b) => Number(b.preco) - Number(a.preco));
-    }
-
-    if (ordenacao === "nome") {
-      lista.sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
-    }
-
-    setProdutosFiltrados(lista);
-  }
+  }, [produtos, categoriaSelecionada, ordenacao]);
 
   function limparFiltros() {
     setCategoriaSelecionada("");
