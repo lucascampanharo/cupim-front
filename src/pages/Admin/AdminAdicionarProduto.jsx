@@ -1,16 +1,20 @@
 import AdminLayout from "./AdminLayout";
 
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 import {
   cadastrarProdutoAdmin,
+  editarProdutoAdmin,
   listarCategoriasAdmin,
 } from "../../services/adminService";
+import { buscarProdutoPorId } from "../../services/productService";
 
 function AdminAdicionarProduto() {
   const navigate = useNavigate();
+  const { id } = useParams();
 
+  const isEditing = Boolean(id);
   const categorias = useMemo(() => listarCategoriasAdmin(), []);
 
   const [nome, setNome] = useState("");
@@ -25,10 +29,55 @@ function AdminAdicionarProduto() {
   const [imagemPreview, setImagemPreview] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [loadingProduto, setLoadingProduto] = useState(isEditing);
 
   const categoriaSelecionada = categorias.find(
     (categoria) => Number(categoria.id) === Number(categoriaId)
   );
+
+  useEffect(() => {
+    if (!isEditing) return;
+
+    async function carregarProduto() {
+      try {
+        setLoadingProduto(true);
+
+        const produto = await buscarProdutoPorId(id);
+
+        if (!produto) {
+          alert("Produto não encontrado.");
+          navigate("/admin/produtos");
+          return;
+        }
+
+        const categoriaDoProduto =
+          produto.idCategoria ||
+          categorias.find(
+            (categoria) =>
+              categoria.nome.toLowerCase() ===
+              String(produto.categoria || "").toLowerCase()
+          )?.id ||
+          categorias[0]?.id ||
+          1;
+
+        setNome(produto.nomeCompleto || produto.nome || "");
+        setPreco(String(produto.preco ?? ""));
+        setTipoMadeira(produto.tipoMadeira || "");
+        setCategoriaId(categoriaDoProduto);
+        setDescricao(produto.descricao || "");
+        setAcabamento(produto.acabamento || "");
+        setEstoque(produto.estoque ?? 0);
+        setImagemPreview(produto.imagem || "");
+      } catch (error) {
+        alert(error.message || "Erro ao carregar produto.");
+        navigate("/admin/produtos");
+      } finally {
+        setLoadingProduto(false);
+      }
+    }
+
+    carregarProduto();
+  }, [categorias, id, isEditing, navigate]);
 
   function handleImageChange(e) {
     const file = e.target.files[0];
@@ -42,30 +91,51 @@ function AdminAdicionarProduto() {
   async function handleSubmit(e) {
     e.preventDefault();
 
+    const productData = {
+      nome,
+      preco,
+      tipoMadeira,
+      acabamento,
+      descricao,
+      estoque,
+      idCategoria: categoriaId,
+      categoriaNome: categoriaSelecionada?.nome || "Sala de estar",
+      imagemArquivo,
+      imagemPreview,
+    };
+
     try {
       setLoading(true);
 
-      await cadastrarProdutoAdmin({
-        nome,
-        preco,
-        tipoMadeira,
-        acabamento,
-        descricao,
-        estoque,
-        idCategoria: categoriaId,
-        categoriaNome: categoriaSelecionada?.nome || "Sala de estar",
-        imagemArquivo,
-        imagemPreview,
-      });
+      if (isEditing) {
+        await editarProdutoAdmin(id, productData);
 
-      alert("Produto cadastrado com sucesso!");
+        alert("Produto atualizado com sucesso!");
+      } else {
+        await cadastrarProdutoAdmin(productData);
+
+        alert("Produto cadastrado com sucesso!");
+      }
 
       navigate("/admin/produtos");
     } catch (error) {
-      alert(error.message || "Erro ao cadastrar produto.");
+      alert(
+        error.message ||
+          (isEditing ? "Erro ao atualizar produto." : "Erro ao cadastrar produto.")
+      );
     } finally {
       setLoading(false);
     }
+  }
+
+  if (loadingProduto) {
+    return (
+      <AdminLayout>
+        <div className="admin-form-page">
+          <p>Carregando produto...</p>
+        </div>
+      </AdminLayout>
+    );
   }
 
   return (
@@ -104,6 +174,7 @@ function AdminAdicionarProduto() {
                 required
                 type="number"
                 min="1"
+                step="0.01"
                 onChange={(e) => setPreco(e.target.value)}
               />
             </div>
@@ -126,6 +197,7 @@ function AdminAdicionarProduto() {
                 value={estoque}
                 type="number"
                 min="0"
+                required
                 onChange={(e) => setEstoque(e.target.value)}
               />
             </div>
@@ -135,6 +207,7 @@ function AdminAdicionarProduto() {
 
               <select
                 value={categoriaId}
+                required
                 onChange={(e) => setCategoriaId(e.target.value)}
               >
                 {categorias.map((categoria) => (
@@ -207,7 +280,13 @@ function AdminAdicionarProduto() {
           </div>
 
           <button className="admin-submit-btn" disabled={loading}>
-            {loading ? "Cadastrando..." : "Cadastrar"}
+            {loading
+              ? isEditing
+                ? "Atualizando..."
+                : "Cadastrando..."
+              : isEditing
+                ? "Atualizar"
+                : "Cadastrar"}
           </button>
         </form>
       </div>

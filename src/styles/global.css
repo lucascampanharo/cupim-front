@@ -9,6 +9,21 @@ body{
   font-family: Arial, Helvetica, sans-serif;
 }
 
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-footer,
+.carrinho-footer,
+.perfil-footer,
+.detalhes-footer,
+.admin-footer {
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
 button{
   cursor: pointer;
   border: none;

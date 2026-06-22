@@ -1,10 +1,5 @@
-import { apiFetch, getImageUrl } from "./api";
-import mockProducts from "../data/products";
+import { apiFetch, getImageUrl, getToken } from "./api";
 import { normalizeProduct } from "../utils/productMapper";
-
-function getAdminCreatedProducts() {
-  return JSON.parse(localStorage.getItem("adminCreatedProducts")) || [];
-}
 
 function getHiddenProducts() {
   return JSON.parse(localStorage.getItem("adminHiddenProducts")) || [];
@@ -53,25 +48,33 @@ export async function listarProdutos() {
       data.data ||
       (Array.isArray(data) ? data : []);
 
-    const produtosBase = produtosApi.length > 0 ? produtosApi : mockProducts;
+    const produtosNormalizados = produtosApi.map(normalizeProduct);
 
-    const produtosNormalizados = produtosBase.map(normalizeProduct);
+    if (!getToken()) {
+      return aplicarProdutosOcultos(produtosNormalizados);
+    }
 
-    const produtosLocais = getAdminCreatedProducts().map(normalizeProduct);
+    const produtosComImagens = await Promise.all(
+      produtosNormalizados.map(async (produto) => {
+        if (produto.imagens.length > 0) return produto;
 
-    const todosProdutos = [...produtosNormalizados, ...produtosLocais];
+        const imagensApi = await buscarImagensDoProduto(produto.id);
 
-    return aplicarProdutosOcultos(todosProdutos);
+        if (imagensApi.length === 0) return produto;
+
+        return {
+          ...produto,
+          imagem: imagensApi[0],
+          imagens: imagensApi,
+        };
+      })
+    );
+
+    return aplicarProdutosOcultos(produtosComImagens);
   } catch (error) {
-    console.warn("API de produtos indisponível. Usando mock:", error.message);
+    console.warn("API de produtos indisponível:", error.message);
 
-    const produtosMock = mockProducts.map(normalizeProduct);
-
-    const produtosLocais = getAdminCreatedProducts().map(normalizeProduct);
-
-    const todosProdutos = [...produtosMock, ...produtosLocais];
-
-    return aplicarProdutosOcultos(todosProdutos);
+    return [];
   }
 }
 
@@ -95,7 +98,7 @@ export async function buscarProdutoPorId(id) {
       return null;
     }
 
-    const imagensApi = await buscarImagensDoProduto(id);
+    const imagensApi = getToken() ? await buscarImagensDoProduto(id) : [];
 
     if (imagensApi.length > 0) {
       return {
@@ -107,24 +110,8 @@ export async function buscarProdutoPorId(id) {
 
     return produtoNormalizado;
   } catch (error) {
-    console.warn("API de detalhes indisponível. Usando mock:", error.message);
+    console.warn("API de detalhes indisponível:", error.message);
 
-    const produtosLocais = getAdminCreatedProducts().map(normalizeProduct);
-
-    const produtoLocal = produtosLocais.find(
-      (product) => String(product.id) === String(id)
-    );
-
-    const produtoMock = mockProducts
-      .map(normalizeProduct)
-      .find((product) => String(product.id) === String(id));
-
-    const produtoFinal = produtoLocal || produtoMock || null;
-
-    if (!produtoFinal || isProdutoOculto(produtoFinal.id)) {
-      return null;
-    }
-
-    return produtoFinal;
+    return null;
   }
 }

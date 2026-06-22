@@ -14,6 +14,7 @@ function Compra() {
   const { cart, clearCart } = useContext(CartContext);
 
   const [formaPagamento, setFormaPagamento] = useState("Cartão de Crédito");
+  const [numeroParcelas, setNumeroParcelas] = useState(12);
   const [loading, setLoading] = useState(false);
 
   const valorPedido = cart.reduce((acc, item) => {
@@ -22,7 +23,18 @@ function Compra() {
 
   const frete = 27.9;
   const valorTotal = valorPedido + frete;
-  const parcela = valorTotal / 12;
+  const parcela = valorTotal / numeroParcelas;
+
+  function handleNumeroParcelas(value) {
+    const parcelas = Number(value);
+
+    if (!parcelas) {
+      setNumeroParcelas(1);
+      return;
+    }
+
+    setNumeroParcelas(Math.min(Math.max(parcelas, 1), 12));
+  }
 
   async function finalizarCompra() {
     if (cart.length === 0) {
@@ -42,6 +54,8 @@ function Compra() {
           quantidade: item.quantidade,
         })),
         formaPagamento,
+        numeroParcelas,
+        valorParcela: parcela,
         valorTotal,
         data: new Date().toLocaleDateString("pt-BR"),
       };
@@ -148,11 +162,19 @@ function Compra() {
             <label>Nº Parcelas:</label>
 
             <input
-              value={`12x de R$ ${parcela.toLocaleString("pt-BR", {
-                minimumFractionDigits: 2,
-              })}`}
-              readOnly
+              type="number"
+              min="1"
+              max="12"
+              value={numeroParcelas}
+              onChange={(event) => handleNumeroParcelas(event.target.value)}
             />
+
+            <small>
+              {numeroParcelas}x de R${" "}
+              {parcela.toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+              })}
+            </small>
           </div>
         </div>
       </section>
@@ -200,7 +222,7 @@ function Compra() {
 
           <p>
             Número de parcelas:
-            <strong>12 vezes</strong>
+            <strong>{numeroParcelas} vezes</strong>
           </p>
 
           <p>

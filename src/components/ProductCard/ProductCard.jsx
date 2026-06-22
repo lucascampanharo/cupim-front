@@ -5,10 +5,14 @@ import { Link } from "react-router-dom";
 function ProductCard({ product }) {
   return (
     <div className="product-card">
-      <img
-        src={product.imagem}
-        alt={product.nomeCompleto || product.nome}
-      />
+      {product.imagem ? (
+        <img
+          src={product.imagem}
+          alt={product.nomeCompleto || product.nome}
+        />
+      ) : (
+        <div className="product-image-placeholder">Sem imagem</div>
+      )}
 
       <div className="product-info">
         <h3>{product.nomeCompleto || product.nome}</h3>
@@ -23,9 +27,7 @@ function ProductCard({ product }) {
         <p>{product.descricao}</p>
 
         <Link to={`/detalhes/${product.id}`}>
-          <button>
-            Ver mais →
-          </button>
+          <button>Ver mais →</button>
         </Link>
       </div>
     </div>

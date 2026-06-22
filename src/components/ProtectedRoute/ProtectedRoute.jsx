@@ -3,7 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 
 import { AuthContext } from "../../context/auth-context";
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, adminOnly = false }) {
   const { user } = useContext(AuthContext);
   const location = useLocation();
 
@@ -17,6 +17,10 @@ function ProtectedRoute({ children }) {
         replace
       />
     );
+  }
+
+  if (adminOnly && user.role !== "admin") {
+    return <Navigate to="/" replace />;
   }
 
   return children;

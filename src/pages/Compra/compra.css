@@ -119,6 +119,11 @@
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.18);
 }
 
+.parcelas-box small {
+  color: #082b5f;
+  font-size: 12px;
+}
+
 .compra-right {
   background: #f7efe4;
   padding: 75px clamp(32px, 6vw, 78px);

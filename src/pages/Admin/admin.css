@@ -62,7 +62,7 @@
 
 .admin-content {
   flex: 1;
-  padding: 0 55px 45px;
+  padding: 0 55px 72px;
 }
 
 .admin-footer {
@@ -112,6 +112,17 @@
   width: 100%;
   height: 135px;
   object-fit: cover;
+}
+
+.admin-card-image-placeholder {
+  width: 100%;
+  height: 135px;
+  background: #e6d4bd;
+  color: #082b5f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
 }
 
 .admin-card-body {

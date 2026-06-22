@@ -61,10 +61,14 @@ function AdminProdutos() {
         <div className="admin-products-grid">
           {produtos.map((produto) => (
             <div className="admin-card" key={produto.id}>
-              <img
-                src={produto.imagem}
-                alt={produto.nomeCompleto || produto.nome}
-              />
+              {produto.imagem ? (
+                <img
+                  src={produto.imagem}
+                  alt={produto.nomeCompleto || produto.nome}
+                />
+              ) : (
+                <div className="admin-card-image-placeholder">Sem imagem</div>
+              )}
 
               <div className="admin-card-body">
                 <h3>{produto.nomeCompleto || produto.nome}</h3>
@@ -80,9 +84,7 @@ function AdminProdutos() {
                   <button
                     className="admin-small-btn"
                     onClick={() =>
-                      alert(
-                        "A edição será integrada quando existir uma rota PUT de produto na API."
-                      )
+                      navigate(`/admin/produtos/${produto.id}/editar`)
                     }
                   >
                     Editar →

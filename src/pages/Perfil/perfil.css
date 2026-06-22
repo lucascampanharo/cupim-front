@@ -2,7 +2,7 @@
   background: #ffffff;
   min-height: calc(100vh - 150px);
   color: #082b5f;
-  padding: 38px 0 55px;
+  padding: 38px 0 72px;
 }
 
 .perfil-content {
@@ -133,6 +133,7 @@
   color: white;
   padding: 22px 45px;
   font-size: 12px;
+  margin-top: auto;
 }
 .pedido-vazio {
   min-height: 90px;

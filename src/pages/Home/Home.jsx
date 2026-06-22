@@ -33,36 +33,33 @@ function Home() {
   }, []);
 
   const produtosFiltrados = useMemo(() => {
-    try {
-      const lista = [...produtos];
+    const lista = [...produtos];
 
-      let listaFiltrada = lista;
+    let listaFiltrada = lista;
 
-      if (categoriaSelecionada) {
-        listaFiltrada = listaFiltrada.filter((produto) =>
-          produto.categoria
-            ?.toLowerCase()
-            .includes(categoriaSelecionada.toLowerCase())
-        );
-      }
-
-      if (ordenacao === "menor-preco") {
-        listaFiltrada.sort((a, b) => Number(a.preco) - Number(b.preco));
-      }
-
-      if (ordenacao === "maior-preco") {
-        listaFiltrada.sort((a, b) => Number(b.preco) - Number(a.preco));
-      }
-
-      if (ordenacao === "nome") {
-        listaFiltrada.sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
-      }
-
-      return listaFiltrada;
-    } catch (error) {
-      console.error("Erro ao filtrar produtos:", error);
-      return [];
+    if (categoriaSelecionada) {
+      listaFiltrada = listaFiltrada.filter((produto) =>
+        produto.categoria
+          ?.toLowerCase()
+          .includes(categoriaSelecionada.toLowerCase())
+      );
     }
+
+    if (ordenacao === "menor-preco") {
+      listaFiltrada.sort((a, b) => Number(a.preco) - Number(b.preco));
+    }
+
+    if (ordenacao === "maior-preco") {
+      listaFiltrada.sort((a, b) => Number(b.preco) - Number(a.preco));
+    }
+
+    if (ordenacao === "nome") {
+      listaFiltrada.sort((a, b) =>
+        String(a.nome).localeCompare(String(b.nome))
+      );
+    }
+
+    return listaFiltrada;
   }, [produtos, categoriaSelecionada, ordenacao]);
 
   function limparFiltros() {
@@ -70,7 +67,7 @@ function Home() {
     setOrdenacao("");
   }
 
-  const produtoLancamento = produtosFiltrados[0] || produtos[0];
+  const produtoLancamento = produtos[produtos.length - 1];
 
   return (
     <>
@@ -83,10 +80,14 @@ function Home() {
           {produtoLancamento ? (
             <div className="lancamento-card">
               <div className="lancamento-image">
-                <img
-                  src={produtoLancamento.imagem}
-                  alt={produtoLancamento.nomeCompleto || produtoLancamento.nome}
-                />
+                {produtoLancamento.imagem ? (
+                  <img
+                    src={produtoLancamento.imagem}
+                    alt={produtoLancamento.nomeCompleto || produtoLancamento.nome}
+                  />
+                ) : (
+                  <div className="product-image-placeholder">Sem imagem</div>
+                )}
               </div>
 
               <div className="lancamento-info">
@@ -135,7 +136,10 @@ function Home() {
               </select>
 
               {categoriaSelecionada && (
-                <button className="filtro-chip" onClick={() => setCategoriaSelecionada("")}>
+                <button
+                  className="filtro-chip"
+                  onClick={() => setCategoriaSelecionada("")}
+                >
                   {categoriaSelecionada} ×
                 </button>
               )}

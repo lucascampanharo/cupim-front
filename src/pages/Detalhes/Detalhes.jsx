@@ -5,12 +5,14 @@ import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { buscarProdutoPorId } from "../../services/productService";
+import { AuthContext } from "../../context/auth-context";
 import { CartContext } from "../../context/cart-context";
 
 function Detalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const { user } = useContext(AuthContext);
   const { addToCart } = useContext(CartContext);
 
   const [product, setProduct] = useState(null);
@@ -64,9 +66,7 @@ function Detalhes() {
     );
   }
 
-  const imagensProduto = product.imagens?.length
-    ? product.imagens
-    : [product.imagem];
+  const imagensProduto = product.imagens?.filter(Boolean) || [];
 
   function aumentarQuantidade() {
     setQuantidade(quantidade + 1);
@@ -79,6 +79,24 @@ function Detalhes() {
   }
 
   function adicionarProdutoAoCarrinho() {
+    if (!user) {
+      localStorage.setItem(
+        "pendingCartItem",
+        JSON.stringify({
+          product,
+          quantidade,
+        })
+      );
+
+      navigate("/login", {
+        state: {
+          from: "/carrinho",
+          pendingCart: true,
+        },
+      });
+      return;
+    }
+
     addToCart(product, quantidade);
   }
 
@@ -93,28 +111,36 @@ function Detalhes() {
 
         <section className="detalhes-grid">
           <div className="detalhes-left">
-            <img
-              className="produto-imagem-principal"
-              src={imagemSelecionada}
-              alt={product.nomeCompleto || product.nome}
-            />
+            {imagemSelecionada ? (
+              <img
+                className="produto-imagem-principal"
+                src={imagemSelecionada}
+                alt={product.nomeCompleto || product.nome}
+              />
+            ) : (
+              <div className="produto-imagem-principal produto-sem-imagem">
+                Sem imagem
+              </div>
+            )}
 
-            <div className="miniaturas">
-              {imagensProduto.map((imagem, index) => (
-                <button
-                  key={index}
-                  className={`miniatura-btn ${
-                    imagemSelecionada === imagem ? "miniatura-ativa" : ""
-                  }`}
-                  onClick={() => setImagemSelecionada(imagem)}
-                >
-                  <img
-                    src={imagem}
-                    alt={`${product.nomeCompleto || product.nome} ${index + 1}`}
-                  />
-                </button>
-              ))}
-            </div>
+            {imagensProduto.length > 0 && (
+              <div className="miniaturas">
+                {imagensProduto.map((imagem, index) => (
+                  <button
+                    key={imagem}
+                    className={`miniatura-btn ${
+                      imagemSelecionada === imagem ? "miniatura-ativa" : ""
+                    }`}
+                    onClick={() => setImagemSelecionada(imagem)}
+                  >
+                    <img
+                      src={imagem}
+                      alt={`${product.nomeCompleto || product.nome} ${index + 1}`}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="detalhes-texto">
               <h2>Detalhes</h2>
@@ -180,12 +206,12 @@ function Detalhes() {
                 <tbody>
                   <tr>
                     <td>Tipo de Madeira</td>
-                    <td>{product.tipoMadeira}</td>
+                    <td>{product.tipoMadeira || "-"}</td>
                   </tr>
 
                   <tr>
                     <td>Acabamento</td>
-                    <td>{product.acabamento}</td>
+                    <td>{product.acabamento || "-"}</td>
                   </tr>
                 </tbody>
               </table>

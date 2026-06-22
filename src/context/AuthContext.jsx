@@ -16,6 +16,10 @@ function buscarUsuarioLocal(email) {
   return users[email];
 }
 
+function getRole(user) {
+  return user?.role || user?.perfil || (user?.admin || user?.isAdmin ? "admin" : "client");
+}
+
 function normalizeUser(user, emailFallback = "") {
   if (!user) {
     return {
@@ -30,8 +34,11 @@ function normalizeUser(user, emailFallback = "") {
       cep: "",
       enderecoCompleto: "",
       admin: false,
+      role: "client",
     };
   }
+
+  const role = getRole(user);
 
   return {
     id:
@@ -82,9 +89,12 @@ function normalizeUser(user, emailFallback = "") {
       "",
 
     admin:
+      role === "admin" ||
       user.admin ||
       user.isAdmin ||
       false,
+
+    role,
   };
 }
 
@@ -126,6 +136,7 @@ export function AuthProvider({ children }) {
       cep: userData.cep,
       enderecoCompleto,
       admin: false,
+      role: "client",
     });
   }
 
@@ -156,7 +167,27 @@ export function AuthProvider({ children }) {
       data.usuario ||
       data.user ||
       data.dadosUsuario ||
-      usuarioLocal;
+      {
+        ...usuarioLocal,
+        email,
+        role: data.role || data.perfil,
+      };
+
+    usuarioFinal = {
+      ...usuarioLocal,
+      ...usuarioFinal,
+      role:
+        data.role ||
+        data.perfil ||
+        data.usuario?.role ||
+        data.usuario?.perfil ||
+        data.user?.role ||
+        data.user?.perfil ||
+        data.dadosUsuario?.role ||
+        data.dadosUsuario?.perfil ||
+        usuarioFinal?.role ||
+        usuarioFinal?.perfil,
+    };
 
     try {
       const usuariosData = await apiFetch("/api/listar-usuarios");
@@ -173,8 +204,9 @@ export function AuthProvider({ children }) {
 
       if (usuarioApi) {
         usuarioFinal = {
-          ...usuarioLocal,
+          ...usuarioFinal,
           ...usuarioApi,
+          role: usuarioFinal.role || usuarioApi.role || usuarioApi.perfil,
         };
       }
     } catch {
@@ -184,16 +216,18 @@ export function AuthProvider({ children }) {
     const loggedUser = normalizeUser(usuarioFinal, email);
 
     localStorage.setItem("userLogged", JSON.stringify(loggedUser));
+    localStorage.setItem("role", loggedUser.role);
 
     setUser(loggedUser);
 
-    return true;
+    return loggedUser;
   }
 
   function logout() {
     removeToken();
 
     localStorage.removeItem("userLogged");
+    localStorage.removeItem("role");
 
     setUser(null);
   }

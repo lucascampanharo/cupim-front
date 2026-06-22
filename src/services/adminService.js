@@ -29,14 +29,6 @@ function salvarCategoriasLocais(categorias) {
   localStorage.setItem("adminCategorias", JSON.stringify(categorias));
 }
 
-function getAdminCreatedProducts() {
-  return JSON.parse(localStorage.getItem("adminCreatedProducts")) || [];
-}
-
-function saveAdminCreatedProducts(products) {
-  localStorage.setItem("adminCreatedProducts", JSON.stringify(products));
-}
-
 function getHiddenProducts() {
   return JSON.parse(localStorage.getItem("adminHiddenProducts")) || [];
 }
@@ -86,79 +78,71 @@ export async function cadastrarProdutoAdmin(productData) {
     idCategoria: Number(productData.idCategoria || 1),
   };
 
-  try {
-    const data = await apiFetch("/api/cadastro-produto", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+  const data = await apiFetch("/api/cadastro-produto", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 
-    let idProduto =
-      data?.produto?.id ||
-      data?.produto?.id_produto ||
-      data?.produtoId ||
-      data?.idProduto ||
-      data?.id_produto ||
-      data?.id;
+  let idProduto =
+    data?.produto?.id ||
+    data?.produto?.id_produto ||
+    data?.produtoId ||
+    data?.idProduto ||
+    data?.id_produto ||
+    data?.id;
 
-    if (!idProduto && productData.imagemArquivo) {
-      const produtoCriado = await encontrarProdutoCriado(productData);
+  if (!idProduto && productData.imagemArquivo) {
+    const produtoCriado = await encontrarProdutoCriado(productData);
 
-      idProduto = produtoCriado?.id;
-    }
-
-    if (idProduto && productData.imagemArquivo) {
-      const formData = new FormData();
-
-      formData.append("imagem", productData.imagemArquivo);
-
-      await apiFetch(`/api/produtos/${idProduto}/imagens`, {
-        method: "POST",
-        body: formData,
-      });
-    }
-
-    return data;
-  } catch (error) {
-    console.warn("Produto salvo localmente:", error.message);
-
-    const produtosLocais = getAdminCreatedProducts();
-
-    const novoProduto = normalizeProduct({
-      id: Date.now(),
-      nome: productData.nome,
-      nomeCompleto: productData.nome,
-      subtitulo: productData.categoriaNome || "",
-      preco: Number(productData.preco),
-      estoque: Number(productData.estoque || 0),
-      descricao: productData.descricao,
-      tipoMadeira: productData.tipoMadeira,
-      acabamento: productData.acabamento,
-      categoria: productData.categoriaNome || "Sala de estar",
-      imagem:
-        productData.imagemPreview ||
-        "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=1200",
-      imagens: [
-        productData.imagemPreview ||
-          "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=1200",
-      ],
-    });
-
-    saveAdminCreatedProducts([...produtosLocais, novoProduto]);
-
-    return novoProduto;
+    idProduto = produtoCriado?.id;
   }
+
+  if (idProduto && productData.imagemArquivo) {
+    const formData = new FormData();
+
+    formData.append("imagem", productData.imagemArquivo);
+
+    await apiFetch(`/api/produtos/${idProduto}/imagens`, {
+      method: "POST",
+      body: formData,
+    });
+  }
+
+  return data;
+}
+
+export async function editarProdutoAdmin(id, productData) {
+  const body = {
+    nome: productData.nome,
+    descricao: productData.descricao,
+    preco: Number(productData.preco),
+    estoque: Number(productData.estoque || 0),
+    tipoMadeira: productData.tipoMadeira,
+    acabamento: productData.acabamento,
+    idCategoria: Number(productData.idCategoria || 1),
+  };
+
+  const data = await apiFetch(`/api/atulizar-produto/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+
+  if (productData.imagemArquivo) {
+    const formData = new FormData();
+
+    formData.append("imagem", productData.imagemArquivo);
+
+    await apiFetch(`/api/produtos/${id}/imagens`, {
+      method: "POST",
+      body: formData,
+    });
+  }
+
+  return data;
 }
 
 export function removerProdutoAdmin(id) {
   const productId = String(id);
-
-  const produtosCriados = getAdminCreatedProducts();
-
-  const produtosCriadosAtualizados = produtosCriados.filter(
-    (produto) => String(produto.id) !== productId
-  );
-
-  saveAdminCreatedProducts(produtosCriadosAtualizados);
 
   const produtosOcultos = getHiddenProducts();
 

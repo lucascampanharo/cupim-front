@@ -3,7 +3,7 @@
   min-height: calc(100vh - 90px);
   background-color: #ffffff;
   color: #082b5f;
-  padding: 24px 36px 40px;
+  padding: 24px 36px 72px;
   box-sizing: border-box;
 }
 
@@ -170,7 +170,7 @@
   box-sizing: border-box;
   font-size: 14px;
   font-weight: 600;
-  margin-top: 30px;
+  margin-top: auto;
 }
 
 @media (max-width: 900px) {

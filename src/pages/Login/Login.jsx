@@ -4,12 +4,14 @@ import { useState, useContext } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
 import { AuthContext } from "../../context/auth-context";
+import { CartContext } from "../../context/cart-context";
 
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const { login } = useContext(AuthContext);
+  const { addToCart } = useContext(CartContext);
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -22,11 +24,27 @@ function Login() {
     try {
       setLoading(true);
 
-      await login(email, senha);
+      const loggedUser = await login(email, senha);
 
       alert("Login realizado com sucesso!");
 
-      navigate(location.state?.from || "/");
+      if (loggedUser.role === "admin") {
+        navigate("/admin");
+        return;
+      }
+
+      const pendingCartItem = JSON.parse(
+        localStorage.getItem("pendingCartItem")
+      );
+
+      if (pendingCartItem?.product) {
+        addToCart(pendingCartItem.product, pendingCartItem.quantidade || 1);
+        localStorage.removeItem("pendingCartItem");
+        navigate("/carrinho");
+        return;
+      }
+
+      navigate("/");
     } catch (error) {
       alert(error.message || "Email ou senha incorretos!");
     } finally {

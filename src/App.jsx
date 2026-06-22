@@ -62,7 +62,7 @@ function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly>
               <AdminProdutos />
             </ProtectedRoute>
           }
@@ -71,7 +71,7 @@ function App() {
         <Route
           path="/admin/produtos"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly>
               <AdminProdutos />
             </ProtectedRoute>
           }
@@ -80,7 +80,16 @@ function App() {
         <Route
           path="/admin/produtos/novo"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly>
+              <AdminAdicionarProduto />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/produtos/:id/editar"
+          element={
+            <ProtectedRoute adminOnly>
               <AdminAdicionarProduto />
             </ProtectedRoute>
           }
@@ -89,7 +98,7 @@ function App() {
         <Route
           path="/admin/categorias"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly>
               <AdminCategorias />
             </ProtectedRoute>
           }
@@ -98,7 +107,7 @@ function App() {
         <Route
           path="/admin/estoque"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly>
               <AdminEstoque />
             </ProtectedRoute>
           }
@@ -107,7 +116,7 @@ function App() {
         <Route
           path="/admin/pedidos"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly>
               <AdminPedidos />
             </ProtectedRoute>
           }
@@ -116,7 +125,7 @@ function App() {
         <Route
           path="/admin/usuarios"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly>
               <AdminUsuarios />
             </ProtectedRoute>
           }

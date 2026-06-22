@@ -1,6 +1,6 @@
 .detalhes-container {
   background: #ffffff;
-  padding: 34px 52px 24px;
+  padding: 34px 52px 72px;
   color: #082b5f;
   min-height: calc(100vh - 150px);
 }
@@ -44,6 +44,15 @@
   object-fit: cover;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.produto-sem-imagem {
+  background: #e6d4bd;
+  color: #082b5f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
 }
 
 /* Miniaturas */
@@ -266,6 +275,7 @@
   color: white;
   padding: 20px 52px;
   font-size: 12px;
+  margin-top: auto;
 }
 
 /* Responsivo básico */
