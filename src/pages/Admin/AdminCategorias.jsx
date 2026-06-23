@@ -13,12 +13,34 @@ function AdminCategorias() {
   const [categorias, setCategorias] = useState([]);
   const [novaCategoria, setNovaCategoria] = useState("");
   const [loading, setLoading] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+
+  function mesclarCategorias(...listas) {
+    const resultado = [];
+
+    listas.flat().forEach((categoria) => {
+      if (!categoria?.nome) return;
+
+      const existe = resultado.some(
+        (item) =>
+          String(item.id) === String(categoria.id) ||
+          item.nome.toLowerCase() === categoria.nome.toLowerCase()
+      );
+
+      if (!existe) {
+        resultado.push(categoria);
+      }
+    });
+
+    return resultado;
+  }
 
   useEffect(() => {
     async function carregarCategorias(event) {
       try {
         const data = await listarCategoriasAdmin({
           cacheKey: event?.detail?.cacheKey,
+          useCacheOnError: true,
         });
 
         setCategorias(data);
@@ -42,12 +64,23 @@ function AdminCategorias() {
     if (!novaCategoria.trim()) return;
 
     try {
-      const atualizadas = await criarCategoriaAdmin(novaCategoria);
+      setSalvando(true);
 
-      setCategorias(atualizadas);
+      const nomeCategoria = novaCategoria.trim();
+      const atualizadas = await criarCategoriaAdmin(novaCategoria);
+      const categoriaOtimista = {
+        id: nomeCategoria,
+        nome: nomeCategoria,
+      };
+
+      setCategorias((prev) =>
+        mesclarCategorias(prev, atualizadas, [categoriaOtimista])
+      );
       setNovaCategoria("");
     } catch (error) {
       alert(error.message || "Erro ao criar categoria.");
+    } finally {
+      setSalvando(false);
     }
   }
 
@@ -85,7 +118,9 @@ function AdminCategorias() {
             onChange={(e) => setNovaCategoria(e.target.value)}
           />
 
-          <button onClick={adicionarCategoria}>+</button>
+          <button onClick={adicionarCategoria} disabled={salvando}>
+            {salvando ? "..." : "+"}
+          </button>
         </div>
 
         <div className="admin-category-list">

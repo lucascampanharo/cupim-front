@@ -40,7 +40,9 @@ function AdminAdicionarProduto() {
       try {
         setLoadingInicial(true);
 
-        const categoriasApi = await listarCategoriasAdmin();
+        const categoriasApi = await listarCategoriasAdmin({
+          useCacheOnError: true,
+        });
 
         setCategorias(categoriasApi);
 
@@ -90,6 +92,7 @@ function AdminAdicionarProduto() {
     async function revalidarCategorias(event) {
       const categoriasApi = await listarCategoriasAdmin({
         cacheKey: event?.detail?.cacheKey,
+        useCacheOnError: true,
       });
 
       setCategorias(categoriasApi);

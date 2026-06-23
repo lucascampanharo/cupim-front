@@ -20,27 +20,50 @@ function normalizeCategory(categoria, index = 0) {
 
   return {
     id:
+      categoria.id_categoria ||
       categoria.id ||
       categoria.idCategoria ||
       categoria.id_categoria ||
+      categoria.idcategoria ||
+      categoria.categoriaId ||
       categoria.nome ||
       index + 1,
     nome:
       categoria.nome ||
       categoria.name ||
       categoria.categoria ||
+      categoria.nome_categoria ||
+      categoria.nomeCategoria ||
       "Categoria",
   };
 }
 
 function extractCategorias(data) {
   const categorias =
+    data?.categorias?.categorias ||
+    data?.categorias?.data ||
+    data?.categorias?.items ||
+    data?.categorias?.rows ||
+    data?.categoria?.categorias ||
+    data?.categoria?.data ||
     data?.categorias ||
+    data?.categoria ||
     data?.categories ||
+    data?.category ||
+    data?.result ||
+    data?.resultado ||
+    data?.rows ||
+    data?.items ||
+    data?.data?.categorias ||
+    data?.data?.categories ||
+    data?.data?.rows ||
+    data?.data?.items ||
     data?.data ||
     (Array.isArray(data) ? data : []);
 
-  return categorias.map(normalizeCategory);
+  return (Array.isArray(categorias) ? categorias : [categorias])
+    .filter(Boolean)
+    .map(normalizeCategory);
 }
 
 function getCategoriasCache() {
@@ -91,16 +114,6 @@ function revalidarCategoriasCache() {
   );
 
   return cacheKey;
-}
-
-async function listarCategoriasPorProdutos() {
-  const produtos = await listarProdutos();
-  const nomes = [...new Set(produtos.map((produto) => produto.categoria).filter(Boolean))];
-
-  return nomes.map((nome) => ({
-    id: nome,
-    nome,
-  }));
 }
 
 function getIdCategoriaValido(idCategoria) {
@@ -232,46 +245,34 @@ export function removerProdutoAdmin(id) {
   }
 }
 
-export async function listarCategoriasAdmin(options = {}) {
-  const rotas = [
-    "/api/listar-categorias",
-    "/api/listar-categoria",
-    "/api/categorias",
-    "/categorias",
-    "/listar-categorias",
-    "/listar-categoria",
-  ];
+async function buscarCategoriasApi(options = {}) {
   const cacheKey = options.cacheKey || getCategoriaCacheKey();
-  const cachedCategorias = getCategoriasCache();
+  const data = await apiFetch(withCacheBust("/api/listar-categorias", cacheKey), {
+    cache: "no-store",
+    headers: {
+      "Cache-Control": "no-cache",
+    },
+  });
 
-  for (const rota of rotas) {
-    try {
-      const data = await apiFetch(withCacheBust(rota, cacheKey), {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache",
-        },
-      });
-      const categorias = extractCategorias(data);
+  return extractCategorias(data);
+}
 
-      if (categorias.length > 0) {
-        const merged = mergeCategorias(categorias, cachedCategorias);
+export async function listarCategoriasAdmin(options = {}) {
+  try {
+    const categoriasApi = await buscarCategoriasApi(options);
 
-        saveCategoriasCache(merged);
+    if (categoriasApi.length > 0) {
+      saveCategoriasCache(categoriasApi);
 
-        return merged;
-      }
-    } catch {
-      // Tenta a proxima rota conhecida.
+      return categoriasApi;
+    }
+  } catch (error) {
+    if (!options.useCacheOnError) {
+      throw error;
     }
   }
 
-  const categoriasPorProdutos = await listarCategoriasPorProdutos();
-  const merged = mergeCategorias(cachedCategorias, categoriasPorProdutos);
-
-  saveCategoriasCache(merged);
-
-  return merged;
+  return getCategoriasCache();
 }
 
 export async function criarCategoriaAdmin(nome) {
@@ -294,9 +295,20 @@ export async function criarCategoriaAdmin(nome) {
   saveCategoriasCache(categoriasComCriada);
 
   const cacheKey = revalidarCategoriasCache();
-  const categorias = await listarCategoriasAdmin({ cacheKey });
+  const categoriasApi = await buscarCategoriasApi({ cacheKey });
+  const categoriaApiCriada = categoriasApi.find(
+    (categoria) => categoria.nome.toLowerCase() === criada.nome.toLowerCase()
+  );
+  const categorias = categoriasApi.length > 0
+    ? mergeCategorias(
+        categoriasApi,
+        categoriaApiCriada ? [categoriaApiCriada] : categoriasComCriada
+      )
+    : categoriasComCriada;
 
-  return mergeCategorias(categorias, categoriasComCriada);
+  saveCategoriasCache(categorias);
+
+  return categorias;
 }
 
 export async function atualizarCategoriaAdmin(id, nome) {

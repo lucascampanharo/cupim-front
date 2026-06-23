@@ -26,6 +26,7 @@ function Home() {
           listarProdutos(),
           listarCategoriasAdmin({
             cacheKey: event?.detail?.cacheKey,
+            useCacheOnError: true,
           }),
         ]);
 
