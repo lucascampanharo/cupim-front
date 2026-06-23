@@ -1,14 +1,18 @@
 import "./productCard.css";
 
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 function ProductCard({ product }) {
+  const [imageError, setImageError] = useState(false);
+
   return (
     <div className="product-card">
-      {product.imagem ? (
+      {product.imagem && !imageError ? (
         <img
           src={product.imagem}
           alt={product.nomeCompleto || product.nome}
+          onError={() => setImageError(true)}
         />
       ) : (
         <div className="product-image-placeholder">Sem imagem</div>

@@ -6,22 +6,31 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { listarProdutos } from "../../services/productService";
+import { listarCategoriasAdmin } from "../../services/adminService";
 
 function Home() {
   const [produtos, setProdutos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [imageErrors, setImageErrors] = useState({});
   const [loading, setLoading] = useState(true);
 
   const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
   const [ordenacao, setOrdenacao] = useState("");
 
   useEffect(() => {
-    async function carregarProdutos() {
+    async function carregarProdutos(event) {
       setLoading(true);
 
       try {
-        const data = await listarProdutos();
+        const [produtosData, categoriasData] = await Promise.all([
+          listarProdutos(),
+          listarCategoriasAdmin({
+            cacheKey: event?.detail?.cacheKey,
+          }),
+        ]);
 
-        setProdutos(data);
+        setProdutos(produtosData);
+        setCategorias(categoriasData);
       } catch (error) {
         console.error("Erro ao carregar produtos:", error);
       } finally {
@@ -30,6 +39,12 @@ function Home() {
     }
 
     carregarProdutos();
+
+    window.addEventListener("categorias:revalidate", carregarProdutos);
+
+    return () => {
+      window.removeEventListener("categorias:revalidate", carregarProdutos);
+    };
   }, []);
 
   const produtosFiltrados = useMemo(() => {
@@ -80,10 +95,16 @@ function Home() {
           {produtoLancamento ? (
             <div className="lancamento-card">
               <div className="lancamento-image">
-                {produtoLancamento.imagem ? (
+                {produtoLancamento.imagem && !imageErrors[produtoLancamento.id] ? (
                   <img
                     src={produtoLancamento.imagem}
                     alt={produtoLancamento.nomeCompleto || produtoLancamento.nome}
+                    onError={() =>
+                      setImageErrors((prev) => ({
+                        ...prev,
+                        [produtoLancamento.id]: true,
+                      }))
+                    }
                   />
                 ) : (
                   <div className="product-image-placeholder">Sem imagem</div>
@@ -126,13 +147,11 @@ function Home() {
                 onChange={(event) => setCategoriaSelecionada(event.target.value)}
               >
                 <option value="">Categoria</option>
-                <option value="Sala de estar">Sala de estar</option>
-                <option value="Quarto">Quarto</option>
-                <option value="Cozinha">Cozinha</option>
-                <option value="Sala de jantar">Sala de jantar</option>
-                <option value="Escritório">Escritório</option>
-                <option value="Área externa">Área externa</option>
-                <option value="Decoração">Decoração</option>
+                {categorias.map((categoria) => (
+                  <option key={categoria.id} value={categoria.nome}>
+                    {categoria.nome}
+                  </option>
+                ))}
               </select>
 
               {categoriaSelecionada && (

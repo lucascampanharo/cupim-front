@@ -1,6 +1,6 @@
 import AdminLayout from "./AdminLayout";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   atualizarCategoriaAdmin,
@@ -10,16 +10,45 @@ import {
 } from "../../services/adminService";
 
 function AdminCategorias() {
-  const [categorias, setCategorias] = useState(() => listarCategoriasAdmin());
+  const [categorias, setCategorias] = useState([]);
   const [novaCategoria, setNovaCategoria] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function carregarCategorias(event) {
+      try {
+        const data = await listarCategoriasAdmin({
+          cacheKey: event?.detail?.cacheKey,
+        });
+
+        setCategorias(data);
+      } catch (error) {
+        alert(error.message || "Erro ao carregar categorias.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    carregarCategorias();
+
+    window.addEventListener("categorias:revalidate", carregarCategorias);
+
+    return () => {
+      window.removeEventListener("categorias:revalidate", carregarCategorias);
+    };
+  }, []);
 
   async function adicionarCategoria() {
     if (!novaCategoria.trim()) return;
 
-    const criada = await criarCategoriaAdmin(novaCategoria);
+    try {
+      const atualizadas = await criarCategoriaAdmin(novaCategoria);
 
-    setCategorias((prev) => [...prev, criada]);
-    setNovaCategoria("");
+      setCategorias(atualizadas);
+      setNovaCategoria("");
+    } catch (error) {
+      alert(error.message || "Erro ao criar categoria.");
+    }
   }
 
   async function editarCategoria(id, nomeAtual) {
@@ -27,17 +56,21 @@ function AdminCategorias() {
 
     if (!novoNome) return;
 
-    const atualizadas = await atualizarCategoriaAdmin(id, novoNome);
+    try {
+      const atualizadas = await atualizarCategoriaAdmin(id, novoNome);
 
-    setCategorias(atualizadas);
+      setCategorias(atualizadas);
+    } catch (error) {
+      alert(error.message || "Erro ao atualizar categoria.");
+    }
   }
 
-  function deletarCategoria(id) {
+  async function deletarCategoria(id) {
     const confirmar = window.confirm("Deseja excluir esta categoria?");
 
     if (!confirmar) return;
 
-    const atualizadas = deletarCategoriaLocal(id);
+    const atualizadas = await deletarCategoriaLocal(id);
 
     setCategorias(atualizadas);
   }
@@ -56,25 +89,31 @@ function AdminCategorias() {
         </div>
 
         <div className="admin-category-list">
-          {categorias.map((categoria) => (
-            <div className="admin-category-row" key={categoria.id}>
-              <span>{categoria.nome}</span>
+          {loading ? (
+            <p>Carregando categorias...</p>
+          ) : categorias.length === 0 ? (
+            <p>Nenhuma categoria cadastrada.</p>
+          ) : (
+            categorias.map((categoria) => (
+              <div className="admin-category-row" key={categoria.id}>
+                <span>{categoria.nome}</span>
 
-              <button
-                className="admin-small-btn"
-                onClick={() => editarCategoria(categoria.id, categoria.nome)}
-              >
-                Editar →
-              </button>
+                <button
+                  className="admin-small-btn"
+                  onClick={() => editarCategoria(categoria.id, categoria.nome)}
+                >
+                  Editar →
+                </button>
 
-              <button
-                className="admin-delete-btn"
-                onClick={() => deletarCategoria(categoria.id)}
-              >
-                🗑
-              </button>
-            </div>
-          ))}
+                <button
+                  className="admin-delete-btn"
+                  onClick={() => deletarCategoria(categoria.id)}
+                >
+                  🗑
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </AdminLayout>

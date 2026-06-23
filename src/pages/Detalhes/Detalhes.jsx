@@ -116,6 +116,7 @@ function Detalhes() {
                 className="produto-imagem-principal"
                 src={imagemSelecionada}
                 alt={product.nomeCompleto || product.nome}
+                onError={() => setImagemSelecionada("")}
               />
             ) : (
               <div className="produto-imagem-principal produto-sem-imagem">

@@ -1,6 +1,6 @@
 import AdminLayout from "./AdminLayout";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -15,12 +15,12 @@ function AdminAdicionarProduto() {
   const { id } = useParams();
 
   const isEditing = Boolean(id);
-  const categorias = useMemo(() => listarCategoriasAdmin(), []);
 
+  const [categorias, setCategorias] = useState([]);
   const [nome, setNome] = useState("");
   const [preco, setPreco] = useState("");
   const [tipoMadeira, setTipoMadeira] = useState("");
-  const [categoriaId, setCategoriaId] = useState(categorias[0]?.id || 1);
+  const [categoriaId, setCategoriaId] = useState("");
   const [descricao, setDescricao] = useState("");
   const [acabamento, setAcabamento] = useState("");
   const [estoque, setEstoque] = useState(0);
@@ -29,18 +29,25 @@ function AdminAdicionarProduto() {
   const [imagemPreview, setImagemPreview] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [loadingProduto, setLoadingProduto] = useState(isEditing);
+  const [loadingInicial, setLoadingInicial] = useState(true);
 
   const categoriaSelecionada = categorias.find(
-    (categoria) => Number(categoria.id) === Number(categoriaId)
+    (categoria) => String(categoria.id) === String(categoriaId)
   );
 
   useEffect(() => {
-    if (!isEditing) return;
-
-    async function carregarProduto() {
+    async function carregarDados() {
       try {
-        setLoadingProduto(true);
+        setLoadingInicial(true);
+
+        const categoriasApi = await listarCategoriasAdmin();
+
+        setCategorias(categoriasApi);
+
+        if (!isEditing) {
+          setCategoriaId(categoriasApi[0]?.id || "");
+          return;
+        }
 
         const produto = await buscarProdutoPorId(id);
 
@@ -52,13 +59,13 @@ function AdminAdicionarProduto() {
 
         const categoriaDoProduto =
           produto.idCategoria ||
-          categorias.find(
+          categoriasApi.find(
             (categoria) =>
               categoria.nome.toLowerCase() ===
               String(produto.categoria || "").toLowerCase()
           )?.id ||
-          categorias[0]?.id ||
-          1;
+          categoriasApi[0]?.id ||
+          "";
 
         setNome(produto.nomeCompleto || produto.nome || "");
         setPreco(String(produto.preco ?? ""));
@@ -69,15 +76,35 @@ function AdminAdicionarProduto() {
         setEstoque(produto.estoque ?? 0);
         setImagemPreview(produto.imagem || "");
       } catch (error) {
-        alert(error.message || "Erro ao carregar produto.");
+        alert(error.message || "Erro ao carregar dados do produto.");
         navigate("/admin/produtos");
       } finally {
-        setLoadingProduto(false);
+        setLoadingInicial(false);
       }
     }
 
-    carregarProduto();
-  }, [categorias, id, isEditing, navigate]);
+    carregarDados();
+  }, [id, isEditing, navigate]);
+
+  useEffect(() => {
+    async function revalidarCategorias(event) {
+      const categoriasApi = await listarCategoriasAdmin({
+        cacheKey: event?.detail?.cacheKey,
+      });
+
+      setCategorias(categoriasApi);
+
+      if (!categoriaId) {
+        setCategoriaId(categoriasApi[0]?.id || "");
+      }
+    }
+
+    window.addEventListener("categorias:revalidate", revalidarCategorias);
+
+    return () => {
+      window.removeEventListener("categorias:revalidate", revalidarCategorias);
+    };
+  }, [categoriaId]);
 
   function handleImageChange(e) {
     const file = e.target.files[0];
@@ -91,6 +118,11 @@ function AdminAdicionarProduto() {
   async function handleSubmit(e) {
     e.preventDefault();
 
+    if (!categoriaId) {
+      alert("Cadastre uma categoria antes de salvar o produto.");
+      return;
+    }
+
     const productData = {
       nome,
       preco,
@@ -99,7 +131,7 @@ function AdminAdicionarProduto() {
       descricao,
       estoque,
       idCategoria: categoriaId,
-      categoriaNome: categoriaSelecionada?.nome || "Sala de estar",
+      categoriaNome: categoriaSelecionada?.nome || "",
       imagemArquivo,
       imagemPreview,
     };
@@ -128,11 +160,11 @@ function AdminAdicionarProduto() {
     }
   }
 
-  if (loadingProduto) {
+  if (loadingInicial) {
     return (
       <AdminLayout>
         <div className="admin-form-page">
-          <p>Carregando produto...</p>
+          <p>Carregando dados...</p>
         </div>
       </AdminLayout>
     );
@@ -210,6 +242,10 @@ function AdminAdicionarProduto() {
                 required
                 onChange={(e) => setCategoriaId(e.target.value)}
               >
+                <option value="" disabled>
+                  Selecione uma categoria
+                </option>
+
                 {categorias.map((categoria) => (
                   <option key={categoria.id} value={categoria.id}>
                     {categoria.nome}

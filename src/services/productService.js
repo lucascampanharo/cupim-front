@@ -56,8 +56,6 @@ export async function listarProdutos() {
 
     const produtosComImagens = await Promise.all(
       produtosNormalizados.map(async (produto) => {
-        if (produto.imagens.length > 0) return produto;
-
         const imagensApi = await buscarImagensDoProduto(produto.id);
 
         if (imagensApi.length === 0) return produto;

@@ -2,39 +2,117 @@ import { apiFetch } from "./api";
 import { listarProdutos } from "./productService";
 import { normalizeProduct } from "../utils/productMapper";
 
-const categoriasPadrao = [
-  { id: 1, nome: "Sala de estar" },
-  { id: 2, nome: "Quarto" },
-  { id: 3, nome: "Cozinha" },
-  { id: 4, nome: "Sala de jantar" },
-  { id: 5, nome: "Escritório" },
-  { id: 6, nome: "Área externa" },
-  { id: 7, nome: "Infantil" },
-  { id: 8, nome: "Decoração" },
-];
-
-function getCategoriasLocais() {
-  const categorias = JSON.parse(localStorage.getItem("adminCategorias"));
-
-  if (categorias?.length) {
-    return categorias;
-  }
-
-  localStorage.setItem("adminCategorias", JSON.stringify(categoriasPadrao));
-
-  return categoriasPadrao;
-}
-
-function salvarCategoriasLocais(categorias) {
-  localStorage.setItem("adminCategorias", JSON.stringify(categorias));
-}
-
 function getHiddenProducts() {
   return JSON.parse(localStorage.getItem("adminHiddenProducts")) || [];
 }
 
 function saveHiddenProducts(products) {
   localStorage.setItem("adminHiddenProducts", JSON.stringify(products));
+}
+
+function normalizeCategory(categoria, index = 0) {
+  if (typeof categoria === "string") {
+    return {
+      id: categoria,
+      nome: categoria,
+    };
+  }
+
+  return {
+    id:
+      categoria.id ||
+      categoria.idCategoria ||
+      categoria.id_categoria ||
+      categoria.nome ||
+      index + 1,
+    nome:
+      categoria.nome ||
+      categoria.name ||
+      categoria.categoria ||
+      "Categoria",
+  };
+}
+
+function extractCategorias(data) {
+  const categorias =
+    data?.categorias ||
+    data?.categories ||
+    data?.data ||
+    (Array.isArray(data) ? data : []);
+
+  return categorias.map(normalizeCategory);
+}
+
+function getCategoriasCache() {
+  return JSON.parse(localStorage.getItem("categoriasCache")) || [];
+}
+
+function saveCategoriasCache(categorias) {
+  localStorage.setItem("categoriasCache", JSON.stringify(categorias));
+}
+
+function mergeCategorias(...listas) {
+  const categorias = [];
+
+  listas.flat().forEach((categoria, index) => {
+    const normalizada = normalizeCategory(categoria, index);
+    const existe = categorias.some(
+      (item) =>
+        String(item.id) === String(normalizada.id) ||
+        item.nome.toLowerCase() === normalizada.nome.toLowerCase()
+    );
+
+    if (!existe) {
+      categorias.push(normalizada);
+    }
+  });
+
+  return categorias;
+}
+
+function getCategoriaCacheKey() {
+  return localStorage.getItem("categoriasCacheKey") || String(Date.now());
+}
+
+function withCacheBust(endpoint, cacheKey = getCategoriaCacheKey()) {
+  const separator = endpoint.includes("?") ? "&" : "?";
+
+  return `${endpoint}${separator}_=${cacheKey}`;
+}
+
+function revalidarCategoriasCache() {
+  const cacheKey = String(Date.now());
+
+  localStorage.setItem("categoriasCacheKey", cacheKey);
+  window.dispatchEvent(
+    new CustomEvent("categorias:revalidate", {
+      detail: { cacheKey },
+    })
+  );
+
+  return cacheKey;
+}
+
+async function listarCategoriasPorProdutos() {
+  const produtos = await listarProdutos();
+  const nomes = [...new Set(produtos.map((produto) => produto.categoria).filter(Boolean))];
+
+  return nomes.map((nome) => ({
+    id: nome,
+    nome,
+  }));
+}
+
+function getIdCategoriaValido(idCategoria) {
+  const id = Number(idCategoria);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error(
+      "Categoria sem ID valido. Recarregue as categorias ou confira se a API de listagem retorna o id da categoria criada."
+    );
+  }
+
+  return id;
 }
 
 async function encontrarProdutoCriado(productData) {
@@ -54,7 +132,6 @@ async function encontrarProdutoCriado(productData) {
 
 export async function listarProdutosAdmin() {
   const produtosOcultos = getHiddenProducts();
-
   const produtos = await listarProdutos();
 
   const produtosFiltrados = produtos.filter(
@@ -68,6 +145,7 @@ export async function listarProdutosAdmin() {
 }
 
 export async function cadastrarProdutoAdmin(productData) {
+  const idCategoria = getIdCategoriaValido(productData.idCategoria);
   const body = {
     nome: productData.nome,
     descricao: productData.descricao,
@@ -75,7 +153,7 @@ export async function cadastrarProdutoAdmin(productData) {
     estoque: Number(productData.estoque || 0),
     tipoMadeira: productData.tipoMadeira,
     acabamento: productData.acabamento,
-    idCategoria: Number(productData.idCategoria || 1),
+    idCategoria,
   };
 
   const data = await apiFetch("/api/cadastro-produto", {
@@ -112,6 +190,7 @@ export async function cadastrarProdutoAdmin(productData) {
 }
 
 export async function editarProdutoAdmin(id, productData) {
+  const idCategoria = getIdCategoriaValido(productData.idCategoria);
   const body = {
     nome: productData.nome,
     descricao: productData.descricao,
@@ -119,7 +198,7 @@ export async function editarProdutoAdmin(id, productData) {
     estoque: Number(productData.estoque || 0),
     tipoMadeira: productData.tipoMadeira,
     acabamento: productData.acabamento,
-    idCategoria: Number(productData.idCategoria || 1),
+    idCategoria,
   };
 
   const data = await apiFetch(`/api/atulizar-produto/${id}`, {
@@ -143,9 +222,7 @@ export async function editarProdutoAdmin(id, productData) {
 
 export function removerProdutoAdmin(id) {
   const productId = String(id);
-
   const produtosOcultos = getHiddenProducts();
-
   const jaEstaOculto = produtosOcultos.some(
     (hiddenId) => String(hiddenId) === productId
   );
@@ -155,67 +232,95 @@ export function removerProdutoAdmin(id) {
   }
 }
 
-export function listarCategoriasAdmin() {
-  return getCategoriasLocais();
+export async function listarCategoriasAdmin(options = {}) {
+  const rotas = [
+    "/api/listar-categorias",
+    "/api/listar-categoria",
+    "/api/categorias",
+    "/categorias",
+    "/listar-categorias",
+    "/listar-categoria",
+  ];
+  const cacheKey = options.cacheKey || getCategoriaCacheKey();
+  const cachedCategorias = getCategoriasCache();
+
+  for (const rota of rotas) {
+    try {
+      const data = await apiFetch(withCacheBust(rota, cacheKey), {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
+      const categorias = extractCategorias(data);
+
+      if (categorias.length > 0) {
+        const merged = mergeCategorias(categorias, cachedCategorias);
+
+        saveCategoriasCache(merged);
+
+        return merged;
+      }
+    } catch {
+      // Tenta a proxima rota conhecida.
+    }
+  }
+
+  const categoriasPorProdutos = await listarCategoriasPorProdutos();
+  const merged = mergeCategorias(cachedCategorias, categoriasPorProdutos);
+
+  saveCategoriasCache(merged);
+
+  return merged;
 }
 
 export async function criarCategoriaAdmin(nome) {
-  try {
-    await apiFetch("/api/criar-categoria", {
-      method: "POST",
-      body: JSON.stringify({ nome }),
-    });
-  } catch (error) {
-    console.warn("Categoria salva apenas localmente:", error.message);
-  }
+  const data = await apiFetch("/api/criar-categoria", {
+    method: "POST",
+    body: JSON.stringify({ nome }),
+  });
 
-  const categorias = getCategoriasLocais();
+  const criada = normalizeCategory(
+    data?.categoria ||
+      data?.category ||
+      data?.data ||
+      {
+        id: nome,
+        nome,
+      }
+  );
+  const categoriasComCriada = mergeCategorias(getCategoriasCache(), [criada]);
 
-  const novaCategoria = {
-    id: Date.now(),
-    nome,
-  };
+  saveCategoriasCache(categoriasComCriada);
 
-  const novasCategorias = [...categorias, novaCategoria];
+  const cacheKey = revalidarCategoriasCache();
+  const categorias = await listarCategoriasAdmin({ cacheKey });
 
-  salvarCategoriasLocais(novasCategorias);
-
-  return novaCategoria;
+  return mergeCategorias(categorias, categoriasComCriada);
 }
 
 export async function atualizarCategoriaAdmin(id, nome) {
-  try {
-    await apiFetch(`/api/atualizar-categoria/${id}`, {
-      method: "PUT",
-      body: JSON.stringify({ nome }),
-    });
-  } catch (error) {
-    console.warn("Categoria atualizada apenas localmente:", error.message);
-  }
+  await apiFetch(`/api/atualizar-categoria/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ nome }),
+  });
 
-  const categorias = getCategoriasLocais();
-
-  const atualizadas = categorias.map((categoria) =>
-    Number(categoria.id) === Number(id)
+  const cacheKey = revalidarCategoriasCache();
+  const categoriasAtualizadas = getCategoriasCache().map((categoria) =>
+    String(categoria.id) === String(id)
       ? { ...categoria, nome }
       : categoria
   );
 
-  salvarCategoriasLocais(atualizadas);
+  saveCategoriasCache(categoriasAtualizadas);
 
-  return atualizadas;
+  return listarCategoriasAdmin({ cacheKey });
 }
 
-export function deletarCategoriaLocal(id) {
-  const categorias = getCategoriasLocais();
+export async function deletarCategoriaLocal() {
+  const cacheKey = revalidarCategoriasCache();
 
-  const novasCategorias = categorias.filter(
-    (categoria) => Number(categoria.id) !== Number(id)
-  );
-
-  salvarCategoriasLocais(novasCategorias);
-
-  return novasCategorias;
+  return listarCategoriasAdmin({ cacheKey });
 }
 
 export function salvarEstoqueLocal(idProduto, estoque) {
@@ -262,87 +367,23 @@ export async function listarUsuariosAdmin() {
   } catch {
     const usersObj = JSON.parse(localStorage.getItem("registeredUsers")) || {};
 
-    const usuariosLocais = Object.values(usersObj).map((user, index) => ({
+    return Object.values(usersObj).map((user, index) => ({
       id: index + 1,
       nome: user.nome,
       email: user.email,
       endereco: user.enderecoCompleto || user.endereco || "",
     }));
-
-    if (usuariosLocais.length) {
-      return usuariosLocais;
-    }
-
-    return [
-      {
-        id: 1,
-        nome: "José Arnaldo",
-        email: "jose.arnaldo@gmail.com",
-        endereco: "Rua 31 de Novembro, 1695, Júlio César, Rio de Janeiro, RJ",
-      },
-      {
-        id: 2,
-        nome: "João Silva",
-        email: "joaosilva97@gmail.com",
-        endereco: "Rua Andorinhas, 98, Águas Claras, Três Passos, RS",
-      },
-      {
-        id: 3,
-        nome: "Maria das Dores",
-        email: "maria.dores@gmail.com",
-        endereco: "Rua Esperança, 275, Av. das Graças, São Paulo, SP",
-      },
-    ];
   }
 }
 
 export function listarPedidosAdmin() {
   const pedidosAdmin = JSON.parse(localStorage.getItem("adminAllPedidos")) || [];
 
-  if (pedidosAdmin.length) {
-    return pedidosAdmin.map((pedido) => ({
-      ...pedido,
-      nomeCliente: pedido.nomeCliente || "Cliente",
-      endereco: pedido.endereco || "Endereço não informado",
-      prazoEntrega: pedido.prazoEntrega || "21/06/2026",
-      valor: pedido.valor || pedido.valorTotal,
-    }));
-  }
-
-  return [
-    {
-      id: 1,
-      nomeCliente: "José Arnaldo",
-      produtos: [
-        { nome: "Mesa de jantar com bancos", quantidade: 1 },
-        { nome: "Sapateira com banco", quantidade: 1 },
-      ],
-      endereco: "Rua 31 de Novembro, 1695, Júlio César, Rio de Janeiro, RJ",
-      formaPagamento: "Cartão de Crédito",
-      valor: 1827.9,
-      prazoEntrega: "15/08/2026",
-    },
-    {
-      id: 2,
-      nomeCliente: "João Silva",
-      produtos: [
-        { nome: "Sapateira com banco", quantidade: 1 },
-        { nome: "Prateleira móvel", quantidade: 1 },
-      ],
-      endereco: "Rua Andorinhas, 98, Águas Claras, Três Passos, RS",
-      formaPagamento: "Pix",
-      valor: 407.9,
-      prazoEntrega: "10/07/2026",
-    },
-    {
-      id: 3,
-      nomeCliente: "Maria das Dores",
-      produtos: [{ nome: "Mesa de jantar com bancos", quantidade: 1 }],
-      endereco: "Rua Esperança, 275, Av. das Graças, São Paulo, SP",
-      formaPagamento: "Cartão de Crédito",
-      valor: 1527.9,
-      prazoEntrega: "26/05/2026",
-      destaque: true,
-    },
-  ];
+  return pedidosAdmin.map((pedido) => ({
+    ...pedido,
+    nomeCliente: pedido.nomeCliente || "Cliente",
+    endereco: pedido.endereco || "Endereço não informado",
+    prazoEntrega: pedido.prazoEntrega || "21/06/2026",
+    valor: pedido.valor || pedido.valorTotal,
+  }));
 }

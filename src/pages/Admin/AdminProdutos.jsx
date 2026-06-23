@@ -12,6 +12,7 @@ function AdminProdutos() {
   const navigate = useNavigate();
 
   const [produtos, setProdutos] = useState([]);
+  const [imageErrors, setImageErrors] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,10 +62,16 @@ function AdminProdutos() {
         <div className="admin-products-grid">
           {produtos.map((produto) => (
             <div className="admin-card" key={produto.id}>
-              {produto.imagem ? (
+              {produto.imagem && !imageErrors[produto.id] ? (
                 <img
                   src={produto.imagem}
                   alt={produto.nomeCompleto || produto.nome}
+                  onError={() =>
+                    setImageErrors((prev) => ({
+                      ...prev,
+                      [produto.id]: true,
+                    }))
+                  }
                 />
               ) : (
                 <div className="admin-card-image-placeholder">Sem imagem</div>
