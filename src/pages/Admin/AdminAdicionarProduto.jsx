@@ -133,7 +133,7 @@ function AdminAdicionarProduto() {
       acabamento,
       descricao,
       estoque,
-      idCategoria: categoriaId,
+      idCategoria: Number(categoriaId),
       categoriaNome: categoriaSelecionada?.nome || "",
       imagemArquivo,
       imagemPreview,

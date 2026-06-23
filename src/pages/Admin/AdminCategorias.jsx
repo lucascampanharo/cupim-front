@@ -15,35 +15,21 @@ function AdminCategorias() {
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
 
-  function mesclarCategorias(...listas) {
-    const resultado = [];
-
-    listas.flat().forEach((categoria) => {
-      if (!categoria?.nome) return;
-
-      const existe = resultado.some(
-        (item) =>
-          String(item.id) === String(categoria.id) ||
-          item.nome.toLowerCase() === categoria.nome.toLowerCase()
-      );
-
-      if (!existe) {
-        resultado.push(categoria);
-      }
-    });
-
-    return resultado;
-  }
-
   useEffect(() => {
     async function carregarCategorias(event) {
       try {
+        setLoading(true);
+
         const data = await listarCategoriasAdmin({
           cacheKey: event?.detail?.cacheKey,
           useCacheOnError: true,
         });
 
-        setCategorias(data);
+        const categoriasValidas = data.filter(
+          (categoria) => Number(categoria.id) > 0
+        );
+
+        setCategorias(categoriasValidas);
       } catch (error) {
         alert(error.message || "Erro ao carregar categorias.");
       } finally {
@@ -67,15 +53,15 @@ function AdminCategorias() {
       setSalvando(true);
 
       const nomeCategoria = novaCategoria.trim();
-      const atualizadas = await criarCategoriaAdmin(novaCategoria);
-      const categoriaOtimista = {
-        id: nomeCategoria,
-        nome: nomeCategoria,
-      };
 
-      setCategorias((prev) =>
-        mesclarCategorias(prev, atualizadas, [categoriaOtimista])
+      const atualizadas = await criarCategoriaAdmin(nomeCategoria);
+
+      const categoriasValidas = atualizadas.filter(
+        (categoria) => Number(categoria.id) > 0
       );
+
+      setCategorias(categoriasValidas);
+
       setNovaCategoria("");
     } catch (error) {
       alert(error.message || "Erro ao criar categoria.");
@@ -92,7 +78,11 @@ function AdminCategorias() {
     try {
       const atualizadas = await atualizarCategoriaAdmin(id, novoNome);
 
-      setCategorias(atualizadas);
+      const categoriasValidas = atualizadas.filter(
+        (categoria) => Number(categoria.id) > 0
+      );
+
+      setCategorias(categoriasValidas);
     } catch (error) {
       alert(error.message || "Erro ao atualizar categoria.");
     }
@@ -103,9 +93,17 @@ function AdminCategorias() {
 
     if (!confirmar) return;
 
-    const atualizadas = await deletarCategoriaLocal(id);
+    try {
+      const atualizadas = await deletarCategoriaLocal(id);
 
-    setCategorias(atualizadas);
+      const categoriasValidas = atualizadas.filter(
+        (categoria) => Number(categoria.id) > 0
+      );
+
+      setCategorias(categoriasValidas);
+    } catch (error) {
+      alert(error.message || "Erro ao excluir categoria.");
+    }
   }
 
   return (

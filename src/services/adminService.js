@@ -2,6 +2,17 @@ import { apiFetch } from "./api";
 import { listarProdutos } from "./productService";
 import { normalizeProduct } from "../utils/productMapper";
 
+const categoriasPadrao = [
+  { id: 1, nome: "Sala de estar" },
+  { id: 2, nome: "Quarto" },
+  { id: 3, nome: "Cozinha" },
+  { id: 4, nome: "Sala de jantar" },
+  { id: 5, nome: "Escritório" },
+  { id: 6, nome: "Área externa" },
+  { id: 7, nome: "Infantil" },
+  { id: 8, nome: "Decoração" },
+];
+
 function getHiddenProducts() {
   return JSON.parse(localStorage.getItem("adminHiddenProducts")) || [];
 }
@@ -10,31 +21,74 @@ function saveHiddenProducts(products) {
   localStorage.setItem("adminHiddenProducts", JSON.stringify(products));
 }
 
+function getCategoriasCache() {
+  return JSON.parse(localStorage.getItem("categoriasCache")) || [];
+}
+
+function saveCategoriasCache(categorias) {
+  localStorage.setItem("categoriasCache", JSON.stringify(categorias));
+}
+
+function getCategoriaCacheKey() {
+  return localStorage.getItem("categoriasCacheKey") || String(Date.now());
+}
+
+function withCacheBust(endpoint, cacheKey = getCategoriaCacheKey()) {
+  const separator = endpoint.includes("?") ? "&" : "?";
+
+  return `${endpoint}${separator}_=${cacheKey}`;
+}
+
+function revalidarCategoriasCache() {
+  const cacheKey = String(Date.now());
+
+  localStorage.setItem("categoriasCacheKey", cacheKey);
+
+  window.dispatchEvent(
+    new CustomEvent("categorias:revalidate", {
+      detail: { cacheKey },
+    })
+  );
+
+  return cacheKey;
+}
+
+function getRawCategoriaId(categoria) {
+  return (
+    categoria?.id_categoria ??
+    categoria?.id ??
+    categoria?.idCategoria ??
+    categoria?.idcategoria ??
+    categoria?.categoriaId ??
+    categoria?.id_categoria_produto ??
+    ""
+  );
+}
+
 function normalizeCategory(categoria, index = 0) {
   if (typeof categoria === "string") {
     return {
-      id: categoria,
+      id: "",
       nome: categoria,
+      temporaria: true,
     };
   }
 
+  const rawId = getRawCategoriaId(categoria);
+  const idNumerico = Number(rawId);
+
+  const temIdValido = Number.isInteger(idNumerico) && idNumerico > 0;
+
   return {
-    id:
-      categoria.id_categoria ||
-      categoria.id ||
-      categoria.idCategoria ||
-      categoria.id_categoria ||
-      categoria.idcategoria ||
-      categoria.categoriaId ||
-      categoria.nome ||
-      index + 1,
+    id: temIdValido ? idNumerico : "",
     nome:
-      categoria.nome ||
-      categoria.name ||
-      categoria.categoria ||
-      categoria.nome_categoria ||
-      categoria.nomeCategoria ||
-      "Categoria",
+      categoria?.nome ||
+      categoria?.name ||
+      categoria?.categoria ||
+      categoria?.nome_categoria ||
+      categoria?.nomeCategoria ||
+      `Categoria ${index + 1}`,
+    temporaria: !temIdValido,
   };
 }
 
@@ -63,57 +117,38 @@ function extractCategorias(data) {
 
   return (Array.isArray(categorias) ? categorias : [categorias])
     .filter(Boolean)
-    .map(normalizeCategory);
-}
-
-function getCategoriasCache() {
-  return JSON.parse(localStorage.getItem("categoriasCache")) || [];
-}
-
-function saveCategoriasCache(categorias) {
-  localStorage.setItem("categoriasCache", JSON.stringify(categorias));
+    .map(normalizeCategory)
+    .filter((categoria) => categoria.nome);
 }
 
 function mergeCategorias(...listas) {
   const categorias = [];
 
   listas.flat().forEach((categoria, index) => {
+    if (!categoria?.nome) return;
+
     const normalizada = normalizeCategory(categoria, index);
-    const existe = categorias.some(
-      (item) =>
-        String(item.id) === String(normalizada.id) ||
-        item.nome.toLowerCase() === normalizada.nome.toLowerCase()
+
+    const existenteIndex = categorias.findIndex(
+      (item) => item.nome.toLowerCase() === normalizada.nome.toLowerCase()
     );
 
-    if (!existe) {
+    if (existenteIndex === -1) {
       categorias.push(normalizada);
+      return;
+    }
+
+    const existente = categorias[existenteIndex];
+
+    const existenteTemId = Number(existente.id) > 0;
+    const novaTemId = Number(normalizada.id) > 0;
+
+    if (!existenteTemId && novaTemId) {
+      categorias[existenteIndex] = normalizada;
     }
   });
 
   return categorias;
-}
-
-function getCategoriaCacheKey() {
-  return localStorage.getItem("categoriasCacheKey") || String(Date.now());
-}
-
-function withCacheBust(endpoint, cacheKey = getCategoriaCacheKey()) {
-  const separator = endpoint.includes("?") ? "&" : "?";
-
-  return `${endpoint}${separator}_=${cacheKey}`;
-}
-
-function revalidarCategoriasCache() {
-  const cacheKey = String(Date.now());
-
-  localStorage.setItem("categoriasCacheKey", cacheKey);
-  window.dispatchEvent(
-    new CustomEvent("categorias:revalidate", {
-      detail: { cacheKey },
-    })
-  );
-
-  return cacheKey;
 }
 
 function getIdCategoriaValido(idCategoria) {
@@ -121,7 +156,7 @@ function getIdCategoriaValido(idCategoria) {
 
   if (!Number.isInteger(id) || id <= 0) {
     throw new Error(
-      "Categoria sem ID valido. Recarregue as categorias ou confira se a API de listagem retorna o id da categoria criada."
+      "Categoria sem ID válido. Recarregue as categorias ou confira se a API de listagem retorna o id da categoria criada."
     );
   }
 
@@ -130,21 +165,41 @@ function getIdCategoriaValido(idCategoria) {
 
 async function encontrarProdutoCriado(productData) {
   const produtos = await listarProdutos();
-  const nomeProduto = String(productData.nome || "").trim().toLowerCase();
+
+  const nomeProduto = String(productData.nome || "")
+    .trim()
+    .toLowerCase();
+
   const precoProduto = Number(productData.preco);
 
   return produtos.find((produto) => {
-    const mesmoNome = String(produto.nome || produto.nomeCompleto || "")
-      .trim()
-      .toLowerCase() === nomeProduto;
+    const mesmoNome =
+      String(produto.nome || produto.nomeCompleto || "")
+        .trim()
+        .toLowerCase() === nomeProduto;
+
     const mesmoPreco = Number(produto.preco) === precoProduto;
 
     return mesmoNome && mesmoPreco;
   });
 }
 
+async function buscarCategoriasApi(options = {}) {
+  const cacheKey = options.cacheKey || getCategoriaCacheKey();
+
+  const data = await apiFetch(withCacheBust("/api/listar-categorias", cacheKey), {
+    cache: "no-store",
+    headers: {
+      "Cache-Control": "no-cache",
+    },
+  });
+
+  return extractCategorias(data);
+}
+
 export async function listarProdutosAdmin() {
   const produtosOcultos = getHiddenProducts();
+
   const produtos = await listarProdutos();
 
   const produtosFiltrados = produtos.filter(
@@ -159,6 +214,7 @@ export async function listarProdutosAdmin() {
 
 export async function cadastrarProdutoAdmin(productData) {
   const idCategoria = getIdCategoriaValido(productData.idCategoria);
+
   const body = {
     nome: productData.nome,
     descricao: productData.descricao,
@@ -204,6 +260,7 @@ export async function cadastrarProdutoAdmin(productData) {
 
 export async function editarProdutoAdmin(id, productData) {
   const idCategoria = getIdCategoriaValido(productData.idCategoria);
+
   const body = {
     nome: productData.nome,
     descricao: productData.descricao,
@@ -214,7 +271,7 @@ export async function editarProdutoAdmin(id, productData) {
     idCategoria,
   };
 
-  const data = await apiFetch(`/api/atulizar-produto/${id}`, {
+  const data = await apiFetch(`/api/atualizar-produto/${id}`, {
     method: "PUT",
     body: JSON.stringify(body),
   });
@@ -235,7 +292,9 @@ export async function editarProdutoAdmin(id, productData) {
 
 export function removerProdutoAdmin(id) {
   const productId = String(id);
+
   const produtosOcultos = getHiddenProducts();
+
   const jaEstaOculto = produtosOcultos.some(
     (hiddenId) => String(hiddenId) === productId
   );
@@ -245,26 +304,18 @@ export function removerProdutoAdmin(id) {
   }
 }
 
-async function buscarCategoriasApi(options = {}) {
-  const cacheKey = options.cacheKey || getCategoriaCacheKey();
-  const data = await apiFetch(withCacheBust("/api/listar-categorias", cacheKey), {
-    cache: "no-store",
-    headers: {
-      "Cache-Control": "no-cache",
-    },
-  });
-
-  return extractCategorias(data);
-}
-
 export async function listarCategoriasAdmin(options = {}) {
   try {
     const categoriasApi = await buscarCategoriasApi(options);
 
-    if (categoriasApi.length > 0) {
-      saveCategoriasCache(categoriasApi);
+    const categoriasComId = categoriasApi.filter(
+      (categoria) => Number(categoria.id) > 0
+    );
 
-      return categoriasApi;
+    if (categoriasComId.length > 0) {
+      saveCategoriasCache(categoriasComId);
+
+      return categoriasComId;
     }
   } catch (error) {
     if (!options.useCacheOnError) {
@@ -272,67 +323,92 @@ export async function listarCategoriasAdmin(options = {}) {
     }
   }
 
-  return getCategoriasCache();
+  const cache = getCategoriasCache().filter(
+    (categoria) => Number(categoria.id) > 0
+  );
+
+  if (cache.length > 0) {
+    return cache;
+  }
+
+  saveCategoriasCache(categoriasPadrao);
+
+  return categoriasPadrao;
 }
 
 export async function criarCategoriaAdmin(nome) {
-  const data = await apiFetch("/api/criar-categoria", {
+  const nomeCategoria = nome.trim();
+
+  if (!nomeCategoria) {
+    throw new Error("Informe o nome da categoria.");
+  }
+
+  await apiFetch("/api/criar-categoria", {
     method: "POST",
-    body: JSON.stringify({ nome }),
+    body: JSON.stringify({ nome: nomeCategoria }),
   });
 
-  const criada = normalizeCategory(
-    data?.categoria ||
-      data?.category ||
-      data?.data ||
-      {
-        id: nome,
-        nome,
-      }
-  );
-  const categoriasComCriada = mergeCategorias(getCategoriasCache(), [criada]);
-
-  saveCategoriasCache(categoriasComCriada);
-
   const cacheKey = revalidarCategoriasCache();
+
   const categoriasApi = await buscarCategoriasApi({ cacheKey });
-  const categoriaApiCriada = categoriasApi.find(
-    (categoria) => categoria.nome.toLowerCase() === criada.nome.toLowerCase()
+
+  const categoriasComId = categoriasApi.filter(
+    (categoria) => Number(categoria.id) > 0
   );
-  const categorias = categoriasApi.length > 0
-    ? mergeCategorias(
-        categoriasApi,
-        categoriaApiCriada ? [categoriaApiCriada] : categoriasComCriada
-      )
-    : categoriasComCriada;
 
-  saveCategoriasCache(categorias);
+  const categoriaCriada = categoriasComId.find(
+    (categoria) => categoria.nome.toLowerCase() === nomeCategoria.toLowerCase()
+  );
 
-  return categorias;
+  if (!categoriaCriada) {
+    throw new Error(
+      "Categoria criada, mas a API ainda não retornou o ID dela. Recarregue a página e tente novamente."
+    );
+  }
+
+  const categoriasAtualizadas = mergeCategorias(
+    getCategoriasCache(),
+    categoriasComId
+  ).filter((categoria) => Number(categoria.id) > 0);
+
+  saveCategoriasCache(categoriasAtualizadas);
+
+  return categoriasAtualizadas;
 }
 
 export async function atualizarCategoriaAdmin(id, nome) {
-  await apiFetch(`/api/atualizar-categoria/${id}`, {
+  const idCategoria = getIdCategoriaValido(id);
+
+  await apiFetch(`/api/atualizar-categoria/${idCategoria}`, {
     method: "PUT",
     body: JSON.stringify({ nome }),
   });
 
   const cacheKey = revalidarCategoriasCache();
+
   const categoriasAtualizadas = getCategoriasCache().map((categoria) =>
-    String(categoria.id) === String(id)
+    Number(categoria.id) === Number(idCategoria)
       ? { ...categoria, nome }
       : categoria
   );
 
   saveCategoriasCache(categoriasAtualizadas);
 
-  return listarCategoriasAdmin({ cacheKey });
+  return listarCategoriasAdmin({ cacheKey, useCacheOnError: true });
 }
 
-export async function deletarCategoriaLocal() {
+export async function deletarCategoriaLocal(id) {
+  const idCategoria = Number(id);
+
+  const categoriasAtualizadas = getCategoriasCache().filter(
+    (categoria) => Number(categoria.id) !== idCategoria
+  );
+
+  saveCategoriasCache(categoriasAtualizadas);
+
   const cacheKey = revalidarCategoriasCache();
 
-  return listarCategoriasAdmin({ cacheKey });
+  return listarCategoriasAdmin({ cacheKey, useCacheOnError: true });
 }
 
 export function salvarEstoqueLocal(idProduto, estoque) {
@@ -348,11 +424,7 @@ export async function listarUsuariosAdmin() {
   try {
     const data = await apiFetch("/api/listar-usuarios");
 
-    const usuarios =
-      data.usuarios ||
-      data.users ||
-      data.data ||
-      [];
+    const usuarios = data.usuarios || data.users || data.data || [];
 
     return usuarios.map((usuario) => ({
       id:
@@ -361,14 +433,9 @@ export async function listarUsuariosAdmin() {
         usuario.id_user ||
         usuario.email,
 
-      nome:
-        usuario.nome ||
-        usuario.name ||
-        "Usuário",
+      nome: usuario.nome || usuario.name || "Usuário",
 
-      email:
-        usuario.email ||
-        "sem-email@email.com",
+      email: usuario.email || "sem-email@email.com",
 
       endereco:
         usuario.endereco ||
